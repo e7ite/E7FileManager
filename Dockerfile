@@ -1,4 +1,7 @@
-FROM debian:bullseye
+FROM ubuntu:latest
 
-RUN apt-get update && \
-    apt-get install build-essential cmake git libgtkmm-3.0-dev x11-apps procps -yq
+ENV DEBIAN_FRONTEND=noninteractive 
+
+RUN apt-get update 
+
+RUN apt-get install libgtkmm-3.0 build-essential firefox cmake git procps wget -yq
