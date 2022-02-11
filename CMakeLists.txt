@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_CLANG_TIDY "clang-tidy-11;-checks=clang-analyzer-*;--warnings-as-errors=clang-analyzer-*")
 
-file(GLOB_RECURSE ALL_CXX_SOURCE_FILES(${PROJECT_SOURCE_DIR}/src/*.[ch]pp)
+file(GLOB_RECURSE ALL_CXX_SOURCE_FILES(${PROJECT_SOURCE_DIR}/src/*.[ch]pp))
 add_executable(e7fmgr ${ALL_CXX_SOURCE_FILES})
 target_link_libraries(e7fmgr PUBLIC PkgConfig::GTKMM3)
 
