@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 file(GLOB_RECURSE ALL_CXX_SOURCE_FILES(${PROJECT_SOURCE_DIR}/src/*.[ch]pp))
 add_executable(e7fmgr ${ALL_CXX_SOURCE_FILES})
-target_link_libraries(e7fmgr PUBLIC PkgConfig::GTKMM3)
+target_link_libraries(e7fmgr PUBLIC PkgConfig::GTKMM3 absl::strings)
 
 find_program(CLANG_FORMAT "clang-format(-[0-9]{1,2})?")
 if(CLANG_FORMAT)
@@ -42,3 +42,6 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 include(GoogleTest) 
+
+set(ABSL_PROPAGATE_CXX_STD ON)
+add_subdirectory(abseil-cpp)
