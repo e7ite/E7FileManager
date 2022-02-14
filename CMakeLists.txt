@@ -13,22 +13,28 @@ file(GLOB_RECURSE ALL_CXX_SOURCE_FILES(${PROJECT_SOURCE_DIR}/src/*.[ch]pp))
 add_executable(e7fmgr ${ALL_CXX_SOURCE_FILES})
 target_link_libraries(e7fmgr PUBLIC PkgConfig::GTKMM3 absl::strings)
 
-find_program(CLANG_FORMAT "clang-format(-[0-9]{1,2})?")
+file(GLOB CLANG_FORMAT NAME "/usr/bin/clang-format-[0-9]*")
 if(CLANG_FORMAT)
+    message("${CLANG_FORMAT} found!")
     add_custom_command(TARGET e7fmgr
         PRE_BUILD
         COMMAND ${CLANG_FORMAT} -i -style=Google ${ALL_CXX_SOURCE_FILES}
         DEPENDS e7fmgr
     )
+else()
+    message("Could not find clang-format. Will not be automatically formatting code.")
 endif()
 
-find_program(CLANG_TIDY "clang-tidy(-[0-9]{1,2})?")
+file(GLOB CLANG_TIDY NAME "/usr/bin/clang-tidy-[0-9]*")
 if(CLANG_TIDY)
+    message("${CLANG_TIDY} found!")
     add_custom_command(TARGET e7fmgr
         PRE_BUILD
         COMMAND ${CLANG_TIDY} -checks=clang-analyzer-* --warnings-as-errors=clang-analyzer-* -p ${PROJECT_SOURCE_DIR}/build ${ALL_CXX_SOURCE_FILES}
         DEPENDS e7fmgr
     )
+else()
+    message("Could not find clang-tidy. Will not be linting code for common errors.")
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
