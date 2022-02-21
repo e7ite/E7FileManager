@@ -29,7 +29,6 @@ class NavBar {
 // external data through inheritance.
 class Window {
  public:
-  Window();
   // Dependancy injection method that will take ownership of the nav_bar object.
   Window(NavBar *nav_bar);
 
@@ -42,6 +41,7 @@ class Window {
   virtual void GoBackDirectory();
   virtual void GoForwardDirectory();
   virtual void GoUpDirectory();
+
   // Can be used to extract a non-owning handle to the navigation bar structure.
   NavBar &GetNavBar();
 

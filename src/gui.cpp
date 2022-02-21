@@ -7,15 +7,15 @@
 
 namespace {
 
-class GtkNavBar : public NavBar {
+class UINavBar : public NavBar {
  public:
-  GtkNavBar() {}
+  UINavBar() {}
 
-  GtkNavBar(const GtkNavBar &) = delete;
-  GtkNavBar(GtkNavBar &&) = delete;
-  GtkNavBar &operator=(const GtkNavBar &) = delete;
-  GtkNavBar &operator=(GtkNavBar &&) = delete;
-  virtual ~GtkNavBar() {}
+  UINavBar(const UINavBar &) = delete;
+  UINavBar(UINavBar &&) = delete;
+  UINavBar &operator=(const UINavBar &) = delete;
+  UINavBar &operator=(UINavBar &&) = delete;
+  virtual ~UINavBar() {}
 
   void OnBackButtonPress(std::function<void()> callback) override {
     back_button_.signal_clicked().connect(callback);
@@ -38,7 +38,6 @@ class GtkNavBar : public NavBar {
 NavBar::NavBar() {}
 NavBar::~NavBar() {}
 
-Window::Window() : Window(new GtkNavBar()) {}
 Window::Window(NavBar *nav_bar) : Window(*nav_bar) {}
 Window::Window(NavBar &nav_bar) : navigate_buttons_(&nav_bar) {
   navigate_buttons_->OnBackButtonPress([this]() { this->GoBackDirectory(); });
