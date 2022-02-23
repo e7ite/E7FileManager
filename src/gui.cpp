@@ -1,11 +1,14 @@
 #include "gui.hpp"
 
+#include <absl/status/statusor.h>
+#include <dirent.h>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
 #include <gtkmm/window.h>
 
 #include <functional>
 #include <memory>
+#include <string_view>
 
 namespace {
 
@@ -51,17 +54,29 @@ class UINavBar : public NavBar {
   Gtk::Button up_button_;
 };
 
+class UISearchBar : public SearchBar {
+ public:
+  void OnFileToSearchEntered(
+      std::function<void(std::string_view)> callback) override {}
+};
+
 }  // namespace
 
 NavBar::NavBar() {}
 NavBar::~NavBar() {}
+SearchBar::SearchBar() {}
+SearchBar::~SearchBar() {}
 
-Window::Window(NavBar *nav_bar) : Window(*nav_bar) {}
-Window::Window(NavBar &nav_bar) : navigate_buttons_(&nav_bar) {
+Window::Window(NavBar *nav_bar, SearchBar *search_bar)
+    : Window(*nav_bar, *search_bar) {}
+Window::Window(NavBar &nav_bar, SearchBar &search_bar)
+    : navigate_buttons_(&nav_bar), file_search_bar_(&search_bar) {
   navigate_buttons_->OnBackButtonPress([this]() { this->GoBackDirectory(); });
   navigate_buttons_->OnUpButtonPress([this]() { this->GoUpDirectory(); });
   navigate_buttons_->OnForwardButtonPress(
       [this]() { this->GoForwardDirectory(); });
+  file_search_bar_->OnFileToSearchEntered(
+      [this](absl::string_view file_name) { this->SearchForFile(file_name); });
 }
 
 Window::~Window() {}
@@ -70,9 +85,12 @@ void Window::GoBackDirectory() {}
 void Window::GoUpDirectory() {}
 void Window::GoForwardDirectory() {}
 
-NavBar &Window::GetNavBar() { return *navigate_buttons_.get(); }
+dirent *Window::SearchForFile(std::string_view file_name) { return nullptr; }
 
-UIWindow::UIWindow() : ::Window(new UINavBar()) {
+NavBar &Window::GetNavBar() { return *navigate_buttons_.get(); }
+SearchBar &Window::GetSearchBar() { return *file_search_bar_.get(); }
+
+UIWindow::UIWindow() : ::Window(new UINavBar(), new UISearchBar()) {
   add(window_widgets_);
 
   // Insert the navigation bar at the top left of the window. Have to dynamic

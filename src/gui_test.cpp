@@ -1,13 +1,17 @@
 #include "gui.hpp"
 
+#include <dirent.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
 #include <gtkmm/window.h>
 
+#include <string_view>
+
 using ::testing::Exactly;
 using ::testing::InitGoogleTest;
+using ::testing::ReturnNull;
 
 namespace {
 
@@ -45,11 +49,35 @@ class MockNavBar : public NavBar {
   std::function<void()> up_button_callback_;
 };
 
+// Acts as the search bar, and is used to ensure methods of Window are invoked
+// for when the user enters text to search for.
+class MockSearchBar : public SearchBar {
+ public:
+  MockSearchBar() : SearchBar() {}
+  virtual ~MockSearchBar() {}
+  MockSearchBar(const MockSearchBar&) = delete;
+  MockSearchBar(MockSearchBar&&) = delete;
+  MockSearchBar& operator=(const MockSearchBar&) = delete;
+  MockSearchBar& operator=(MockSearchBar&&) = delete;
+
+  void OnFileToSearchEntered(
+      std::function<void(std::string_view)> callback) override {
+    file_typed_callback_ = callback;
+  }
+
+  void SimulateFileToSearchEntered(std::string_view file_name) {
+    file_typed_callback_(file_name);
+  }
+
+ private:
+  std::function<void(std::string_view)> file_typed_callback_;
+};
+
 // Acts as regular window, and is used to ensure methods of Window are
 // invoked and state changes as expected.
 class MockWindow : public Window {
  public:
-  MockWindow() : Window(new MockNavBar()) {}
+  MockWindow() : Window(new MockNavBar(), new MockSearchBar()) {}
   virtual ~MockWindow() {}
 
   MockWindow(const MockWindow&) = delete;
@@ -60,6 +88,8 @@ class MockWindow : public Window {
   MOCK_METHOD(void, GoBackDirectory, (), (override));
   MOCK_METHOD(void, GoForwardDirectory, (), (override));
   MOCK_METHOD(void, GoUpDirectory, (), (override));
+
+  MOCK_METHOD(dirent*, SearchForFile, (std::string_view file_name), (override));
 };
 
 TEST(WindowTest, EnsureBackButtonResponseReceived) {
@@ -84,6 +114,17 @@ TEST(WindowTest, EnsureUpButtonResponseReceived) {
   auto* mock_nav_bar = dynamic_cast<MockNavBar*>(&mock_window.GetNavBar());
   ASSERT_TRUE(mock_nav_bar != nullptr);
   mock_nav_bar->SimulateUpButtonPress();
+}
+
+TEST(WindowTest, EnsureFileIsSearchedFor) {
+  MockWindow mock_window;
+  EXPECT_CALL(mock_window, SearchForFile("hello.txt"))
+      .Times(Exactly(1))
+      .WillOnce(ReturnNull());
+  auto* mock_search_bar =
+      dynamic_cast<MockSearchBar*>(&mock_window.GetSearchBar());
+  ASSERT_TRUE(mock_search_bar != nullptr);
+  mock_search_bar->SimulateFileToSearchEntered("hello.txt");
 }
 
 }  // namespace

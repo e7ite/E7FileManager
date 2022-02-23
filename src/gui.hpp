@@ -1,11 +1,13 @@
 #ifndef GUI_HPP
 #define GUI_HPP
 
+#include <dirent.h>
 #include <gtkmm/box.h>
 #include <gtkmm/window.h>
 
 #include <functional>
 #include <memory>
+#include <string_view>
 
 // A base interface for creating derived instances of the navigation bar,
 // containing a back, forward, and up button. Can be derived to provide
@@ -27,13 +29,28 @@ class NavBar {
   virtual void OnUpButtonPress(std::function<void()> callback) = 0;
 };
 
+// Represents the search bar data, and is used to forward signal when text is
+// entered.
+class SearchBar {
+ public:
+  SearchBar();
+  SearchBar(const SearchBar &) = delete;
+  SearchBar(SearchBar &&) = delete;
+  SearchBar &operator=(const SearchBar &) = delete;
+  SearchBar &operator=(SearchBar &&) = delete;
+  virtual ~SearchBar();
+
+  virtual void OnFileToSearchEntered(
+      std::function<void(std::string_view)> callback) = 0;
+};
+
 // Base data structure for application window that holds all internal state,
 // and avoids containing any information related to GTK, tests, etc. Add
 // external data through inheritance.
 class Window {
  public:
   // Dependancy injection method that will take ownership of the nav_bar object.
-  Window(NavBar *nav_bar);
+  Window(NavBar *nav_bar, SearchBar *search_bar);
 
   Window(const Window &) = delete;
   Window(Window &&) = delete;
@@ -45,13 +62,17 @@ class Window {
   virtual void GoForwardDirectory();
   virtual void GoUpDirectory();
 
-  // Can be used to extract a non-owning handle to the navigation bar structure.
+  virtual dirent *SearchForFile(std::string_view file_name);
+
+  // Can be used to extract non-owning handles to GUI internal widgets.
   NavBar &GetNavBar();
+  SearchBar &GetSearchBar();
 
  private:
-  Window(NavBar &nav_bar);
+  Window(NavBar &nav_bar, SearchBar &search_bar);
 
   std::unique_ptr<NavBar> navigate_buttons_;
+  std::unique_ptr<SearchBar> file_search_bar_;
 };
 
 // Main class which represents the game's window.
