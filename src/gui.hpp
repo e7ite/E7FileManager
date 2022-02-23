@@ -75,7 +75,8 @@ class Window {
   std::unique_ptr<SearchBar> file_search_bar_;
 };
 
-// Main class which represents the game's window.
+// Represents the whole GUI structure including the file manager's internal
+// state and all the GTK widgets required for it.
 class UIWindow : public Gtk::Window, public Window {
  public:
   UIWindow();
