@@ -1,6 +1,9 @@
 #ifndef GUI_HPP
 #define GUI_HPP
 
+#include <gtkmm/box.h>
+#include <gtkmm/window.h>
+
 #include <functional>
 #include <memory>
 
@@ -49,6 +52,23 @@ class Window {
   Window(NavBar &nav_bar);
 
   std::unique_ptr<NavBar> navigate_buttons_;
+};
+
+// Main class which represents the game's window.
+class UIWindow : public Gtk::Window, public Window {
+ public:
+  UIWindow();
+
+  UIWindow(const UIWindow &) = delete;
+  UIWindow(UIWindow &&) = delete;
+  UIWindow &operator=(const UIWindow &) = delete;
+  UIWindow &operator=(UIWindow &&) = delete;
+  virtual ~UIWindow() {}
+
+ private:
+  UIWindow(NavBar &nav_bar);
+
+  Gtk::Box window_widgets_;
 };
 
 #endif  // GUI_HPP

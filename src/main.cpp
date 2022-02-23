@@ -1,12 +1,15 @@
-#include <gtkmm.h>
+#include <gtkmm/application.h>
+#include <gtkmm/box.h>
+#include <gtkmm/button.h>
 
-int main(int argc, char *argv[])
-{
-    Glib::RefPtr<Gtk::Application> app = Gtk::Application::create(argc, argv,
-                                                                  "org.gtkmm.examples.base");
+#include "gui.hpp"
 
-    Gtk::Window window;
-    window.set_default_size(200, 200);
+int main(int argc, char *argv[]) {
+  Glib::RefPtr<Gtk::Application> app =
+      Gtk::Application::create(argc, argv, "org.gtkmm.examples.base");
 
-    return app->run(window);
+  UIWindow window;
+  window.set_size_request(600, 600);
+
+  return app->run(window);
 }
