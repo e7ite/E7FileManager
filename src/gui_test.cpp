@@ -76,8 +76,8 @@ class MockSearchBar : public SearchBar {
   std::function<void(const Glib::ustring&, int*)> file_typed_callback_;
 };
 
-// Acts as regular window, and is used to ensure methods of Window are
-// invoked and state changes as expected.
+// Acts as regular window, and is used to ensure methods of Window are invoked 
+// and state changes as expected.
 class MockWindow : public Window {
  public:
   MockWindow() : Window(new MockNavBar(), new MockSearchBar()) {}
@@ -96,7 +96,7 @@ class MockWindow : public Window {
               (override));
 };
 
-TEST(WindowTest, EnsureBackButtonResponseReceived) {
+TEST(WindowTest, EnsureBackButtonRequestReceived) {
   MockWindow mock_window;
   EXPECT_CALL(mock_window, GoBackDirectory()).Times(Exactly(1));
   auto* mock_nav_bar = dynamic_cast<MockNavBar*>(&mock_window.GetNavBar());
@@ -104,7 +104,7 @@ TEST(WindowTest, EnsureBackButtonResponseReceived) {
   mock_nav_bar->SimulateBackButtonPress();
 }
 
-TEST(WindowTest, EnsureForwardButtonResponseReceived) {
+TEST(WindowTest, EnsureForwardButtonRequestReceived) {
   MockWindow mock_window;
   EXPECT_CALL(mock_window, GoForwardDirectory()).Times(Exactly(1));
   auto* mock_nav_bar = dynamic_cast<MockNavBar*>(&mock_window.GetNavBar());
@@ -112,7 +112,7 @@ TEST(WindowTest, EnsureForwardButtonResponseReceived) {
   mock_nav_bar->SimulateForwardButtonPress();
 }
 
-TEST(WindowTest, EnsureUpButtonResponseReceived) {
+TEST(WindowTest, EnsureUpButtonRequestReceived) {
   MockWindow mock_window;
   EXPECT_CALL(mock_window, GoUpDirectory()).Times(Exactly(1));
   auto* mock_nav_bar = dynamic_cast<MockNavBar*>(&mock_window.GetNavBar());
