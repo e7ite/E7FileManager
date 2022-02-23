@@ -5,6 +5,7 @@
 #include <glibmm/ustring.h>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
+#include <gtkmm/entry.h>
 #include <gtkmm/window.h>
 
 #include <functional>
@@ -56,7 +57,15 @@ class UINavBar : public NavBar {
 
 class UISearchBar : public SearchBar {
  public:
-  UISearchBar() {}
+  UISearchBar() {
+    // Required to make box not expand vertically.
+    file_search_entry_box_.set_halign(Gtk::ALIGN_END);
+    file_search_entry_box_.set_valign(Gtk::ALIGN_START);
+
+    file_search_entry_box_.set_placeholder_text("File to enter...");
+
+    file_search_entry_box_.set_size_request(50, 20);
+  }
 
   UISearchBar(const UISearchBar &) = delete;
   UISearchBar(UISearchBar &&) = delete;
@@ -65,7 +74,14 @@ class UISearchBar : public SearchBar {
   virtual ~UISearchBar() {}
 
   void OnFileToSearchEntered(
-      std::function<void(const Glib::ustring &, int *)> callback) override {}
+      std::function<void(const Glib::ustring &, int *)> callback) override {
+    file_search_entry_box_.signal_insert_text().connect(callback);
+  }
+
+  Gtk::Entry &GetTextBox() { return file_search_entry_box_; }
+
+ private:
+  Gtk::Entry file_search_entry_box_;
 };
 
 }  // namespace
@@ -83,6 +99,7 @@ Window::Window(NavBar &nav_bar, SearchBar &search_bar)
   navigate_buttons_->OnUpButtonPress([this]() { this->GoUpDirectory(); });
   navigate_buttons_->OnForwardButtonPress(
       [this]() { this->GoForwardDirectory(); });
+      
   file_search_bar_->OnFileToSearchEntered(
       [this](const Glib::ustring &file_name, [[maybe_unused]] int *) {
         Glib::UStringView file_name_view = file_name;
@@ -110,6 +127,10 @@ UIWindow::UIWindow() : ::Window(new UINavBar(), new UISearchBar()) {
   auto &nav_bar = dynamic_cast<UINavBar &>(GetNavBar());
   window_widgets_.pack_start(nav_bar.GetBorder(),
                              Gtk::PackOptions::PACK_SHRINK);
+
+  auto &search_bar = dynamic_cast<UISearchBar &>(GetSearchBar());
+  window_widgets_.pack_end(search_bar.GetTextBox(),
+                           Gtk::PackOptions::PACK_SHRINK);
 
   show_all();
 }
