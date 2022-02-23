@@ -2,6 +2,8 @@
 #define GUI_HPP
 
 #include <dirent.h>
+#include <glibmm/stringutils.h>
+#include <glibmm/ustring.h>
 #include <gtkmm/box.h>
 #include <gtkmm/window.h>
 
@@ -41,7 +43,7 @@ class SearchBar {
   virtual ~SearchBar();
 
   virtual void OnFileToSearchEntered(
-      std::function<void(std::string_view)> callback) = 0;
+      std::function<void(const Glib::ustring &, int *)> callback) = 0;
 };
 
 // Base data structure for application window that holds all internal state,
@@ -62,7 +64,7 @@ class Window {
   virtual void GoForwardDirectory();
   virtual void GoUpDirectory();
 
-  virtual dirent *SearchForFile(std::string_view file_name);
+  virtual dirent *SearchForFile(Glib::UStringView file_name);
 
   // Can be used to extract non-owning handles to GUI internal widgets.
   NavBar &GetNavBar();

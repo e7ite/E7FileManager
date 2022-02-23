@@ -1,14 +1,14 @@
 #include "gui.hpp"
 
-#include <absl/status/statusor.h>
 #include <dirent.h>
+#include <glibmm/stringutils.h>
+#include <glibmm/ustring.h>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
 #include <gtkmm/window.h>
 
 #include <functional>
 #include <memory>
-#include <string_view>
 
 namespace {
 
@@ -56,8 +56,16 @@ class UINavBar : public NavBar {
 
 class UISearchBar : public SearchBar {
  public:
+  UISearchBar() {}
+
+  UISearchBar(const UISearchBar &) = delete;
+  UISearchBar(UISearchBar &&) = delete;
+  UISearchBar &operator=(const UISearchBar &) = delete;
+  UISearchBar &operator=(UISearchBar &&) = delete;
+  virtual ~UISearchBar() {}
+
   void OnFileToSearchEntered(
-      std::function<void(std::string_view)> callback) override {}
+      std::function<void(const Glib::ustring &, int *)> callback) override {}
 };
 
 }  // namespace
@@ -76,7 +84,10 @@ Window::Window(NavBar &nav_bar, SearchBar &search_bar)
   navigate_buttons_->OnForwardButtonPress(
       [this]() { this->GoForwardDirectory(); });
   file_search_bar_->OnFileToSearchEntered(
-      [this](absl::string_view file_name) { this->SearchForFile(file_name); });
+      [this](const Glib::ustring &file_name, [[maybe_unused]] int *) {
+        Glib::UStringView file_name_view = file_name;
+        this->SearchForFile(file_name_view);
+      });
 }
 
 Window::~Window() {}
@@ -85,7 +96,7 @@ void Window::GoBackDirectory() {}
 void Window::GoUpDirectory() {}
 void Window::GoForwardDirectory() {}
 
-dirent *Window::SearchForFile(std::string_view file_name) { return nullptr; }
+dirent *Window::SearchForFile(Glib::UStringView file_name) { return nullptr; }
 
 NavBar &Window::GetNavBar() { return *navigate_buttons_.get(); }
 SearchBar &Window::GetSearchBar() { return *file_search_bar_.get(); }

@@ -1,6 +1,8 @@
 #include "gui.hpp"
 
 #include <dirent.h>
+#include <glibmm/stringutils.h>
+#include <glibmm/ustring.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <gtkmm/box.h>
@@ -9,6 +11,7 @@
 
 #include <string_view>
 
+using ::testing::_;
 using ::testing::Exactly;
 using ::testing::InitGoogleTest;
 using ::testing::ReturnNull;
@@ -61,16 +64,16 @@ class MockSearchBar : public SearchBar {
   MockSearchBar& operator=(MockSearchBar&&) = delete;
 
   void OnFileToSearchEntered(
-      std::function<void(std::string_view)> callback) override {
+      std::function<void(const Glib::ustring&, int*)> callback) override {
     file_typed_callback_ = callback;
   }
 
   void SimulateFileToSearchEntered(std::string_view file_name) {
-    file_typed_callback_(file_name);
+    file_typed_callback_(Glib::ustring(file_name.data()), nullptr);
   }
 
  private:
-  std::function<void(std::string_view)> file_typed_callback_;
+  std::function<void(const Glib::ustring&, int*)> file_typed_callback_;
 };
 
 // Acts as regular window, and is used to ensure methods of Window are
@@ -89,7 +92,8 @@ class MockWindow : public Window {
   MOCK_METHOD(void, GoForwardDirectory, (), (override));
   MOCK_METHOD(void, GoUpDirectory, (), (override));
 
-  MOCK_METHOD(dirent*, SearchForFile, (std::string_view file_name), (override));
+  MOCK_METHOD(dirent*, SearchForFile, (Glib::UStringView file_name),
+              (override));
 };
 
 TEST(WindowTest, EnsureBackButtonResponseReceived) {
@@ -118,7 +122,9 @@ TEST(WindowTest, EnsureUpButtonResponseReceived) {
 
 TEST(WindowTest, EnsureFileIsSearchedFor) {
   MockWindow mock_window;
-  EXPECT_CALL(mock_window, SearchForFile("hello.txt"))
+  // Expect anything file name for now, since there is no
+  //ß operator==(Glib::UStringView, Glib::UStringView). Fix later.
+  EXPECT_CALL(mock_window, SearchForFile(_))
       .Times(Exactly(1))
       .WillOnce(ReturnNull());
   auto* mock_search_bar =
