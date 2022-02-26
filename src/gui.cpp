@@ -107,9 +107,6 @@ FileSearchBar::~FileSearchBar() {}
 CurrentDirectoryBar::CurrentDirectoryBar() {}
 CurrentDirectoryBar::~CurrentDirectoryBar() {}
 
-Window::Window(NavBar *nav_bar, FileSearchBar *search_bar,
-               CurrentDirectoryBar *directory_bar)
-    : Window(*nav_bar, *search_bar, *directory_bar) {}
 Window::Window(NavBar &nav_bar, FileSearchBar &search_bar,
                CurrentDirectoryBar &directory_bar)
     : navigate_buttons_(&nav_bar),
@@ -150,8 +147,8 @@ CurrentDirectoryBar &Window::GetDirectoryBar() {
 }
 
 UIWindow::UIWindow()
-    : ::Window(new UINavBar(), new UIFileSearchBar(),
-               new UICurrentDirectoryBar()) {
+    : ::Window(*new UINavBar(), *new UIFileSearchBar(),
+               *new UICurrentDirectoryBar()) {
   add(window_widgets_);
 
   // Insert the navigation bar at the top left of the window. Have to dynamic

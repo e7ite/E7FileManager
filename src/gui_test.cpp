@@ -75,8 +75,8 @@ class MockFileSearchBar : public FileSearchBar {
   std::function<void(const Glib::ustring&, int*)> file_typed_callback_;
 };
 
-// Acts as the display of the current directory. Can send fake responses 
-// imititating calls from GTKMM, to mimic a user requesting a change to the 
+// Acts as the display of the current directory. Can send fake responses
+// imititating calls from GTKMM, to mimic a user requesting a change to the
 // current directory.
 class MockCurrentDirectoryBar : public CurrentDirectoryBar {
  public:
@@ -106,8 +106,8 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
 class MockWindow : public Window {
  public:
   MockWindow()
-      : Window(new MockNavBar(), new MockFileSearchBar(),
-               new MockCurrentDirectoryBar()) {}
+      : Window(*new MockNavBar(), *new MockFileSearchBar(),
+               *new MockCurrentDirectoryBar()) {}
   virtual ~MockWindow() {}
 
   MockWindow(const MockWindow&) = delete;
