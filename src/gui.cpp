@@ -55,9 +55,9 @@ class UINavBar : public NavBar {
   Gtk::Button up_button_;
 };
 
-class UISearchBar : public SearchBar {
+class UIFileSearchBar : public FileSearchBar {
  public:
-  UISearchBar() {
+  UIFileSearchBar() {
     // Required to make box not expand vertically.
     file_search_entry_box_.set_halign(Gtk::ALIGN_END);
     file_search_entry_box_.set_valign(Gtk::ALIGN_START);
@@ -67,11 +67,11 @@ class UISearchBar : public SearchBar {
     file_search_entry_box_.set_size_request(50, 20);
   }
 
-  UISearchBar(const UISearchBar &) = delete;
-  UISearchBar(UISearchBar &&) = delete;
-  UISearchBar &operator=(const UISearchBar &) = delete;
-  UISearchBar &operator=(UISearchBar &&) = delete;
-  virtual ~UISearchBar() {}
+  UIFileSearchBar(const UIFileSearchBar &) = delete;
+  UIFileSearchBar(UIFileSearchBar &&) = delete;
+  UIFileSearchBar &operator=(const UIFileSearchBar &) = delete;
+  UIFileSearchBar &operator=(UIFileSearchBar &&) = delete;
+  virtual ~UIFileSearchBar() {}
 
   void OnFileToSearchEntered(
       std::function<void(const Glib::ustring &, int *)> callback) override {
@@ -102,15 +102,15 @@ class UICurrentDirectoryBar : public CurrentDirectoryBar {
 
 NavBar::NavBar() {}
 NavBar::~NavBar() {}
-SearchBar::SearchBar() {}
-SearchBar::~SearchBar() {}
+FileSearchBar::FileSearchBar() {}
+FileSearchBar::~FileSearchBar() {}
 CurrentDirectoryBar::CurrentDirectoryBar() {}
 CurrentDirectoryBar::~CurrentDirectoryBar() {}
 
-Window::Window(NavBar *nav_bar, SearchBar *search_bar,
+Window::Window(NavBar *nav_bar, FileSearchBar *search_bar,
                CurrentDirectoryBar *directory_bar)
     : Window(*nav_bar, *search_bar, *directory_bar) {}
-Window::Window(NavBar &nav_bar, SearchBar &search_bar,
+Window::Window(NavBar &nav_bar, FileSearchBar &search_bar,
                CurrentDirectoryBar &directory_bar)
     : navigate_buttons_(&nav_bar),
       file_search_bar_(&search_bar),
@@ -144,13 +144,14 @@ dirent *Window::SearchForFile(Glib::UStringView file_name) { return nullptr; }
 bool Window::UpdateDirectory(Glib::UStringView new_directory) { return true; }
 
 NavBar &Window::GetNavBar() { return *navigate_buttons_.get(); }
-SearchBar &Window::GetSearchBar() { return *file_search_bar_.get(); }
+FileSearchBar &Window::GetFileSearchBar() { return *file_search_bar_.get(); }
 CurrentDirectoryBar &Window::GetDirectoryBar() {
   return *current_directory_bar_.get();
 }
 
 UIWindow::UIWindow()
-    : ::Window(new UINavBar(), new UISearchBar(), new UICurrentDirectoryBar()) {
+    : ::Window(new UINavBar(), new UIFileSearchBar(),
+               new UICurrentDirectoryBar()) {
   add(window_widgets_);
 
   // Insert the navigation bar at the top left of the window. Have to dynamic
@@ -160,7 +161,7 @@ UIWindow::UIWindow()
   window_widgets_.pack_start(nav_bar.GetBorder(),
                              Gtk::PackOptions::PACK_SHRINK);
 
-  auto &search_bar = dynamic_cast<UISearchBar &>(GetSearchBar());
+  auto &search_bar = dynamic_cast<UIFileSearchBar &>(GetFileSearchBar());
   window_widgets_.pack_end(search_bar.GetTextBox(),
                            Gtk::PackOptions::PACK_SHRINK);
 

@@ -55,14 +55,14 @@ class MockNavBar : public NavBar {
 
 // Acts as the search bar, and is used to ensure methods of Window are invoked
 // for when the user enters text to search for.
-class MockSearchBar : public SearchBar {
+class MockFileSearchBar : public FileSearchBar {
  public:
-  MockSearchBar() : SearchBar() {}
-  virtual ~MockSearchBar() {}
-  MockSearchBar(const MockSearchBar&) = delete;
-  MockSearchBar(MockSearchBar&&) = delete;
-  MockSearchBar& operator=(const MockSearchBar&) = delete;
-  MockSearchBar& operator=(MockSearchBar&&) = delete;
+  MockFileSearchBar() : FileSearchBar() {}
+  virtual ~MockFileSearchBar() {}
+  MockFileSearchBar(const MockFileSearchBar&) = delete;
+  MockFileSearchBar(MockFileSearchBar&&) = delete;
+  MockFileSearchBar& operator=(const MockFileSearchBar&) = delete;
+  MockFileSearchBar& operator=(MockFileSearchBar&&) = delete;
 
   void OnFileToSearchEntered(
       std::function<void(const Glib::ustring&, int*)> callback) override {
@@ -105,7 +105,7 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
 class MockWindow : public Window {
  public:
   MockWindow()
-      : Window(new MockNavBar(), new MockSearchBar(),
+      : Window(new MockNavBar(), new MockFileSearchBar(),
                new MockCurrentDirectoryBar()) {}
   virtual ~MockWindow() {}
 
@@ -156,10 +156,10 @@ TEST(WindowTest, EnsureFileIsSearchedFor) {
   EXPECT_CALL(mock_window, SearchForFile(_))
       .Times(Exactly(1))
       .WillOnce(ReturnNull());
-  auto* mock_search_bar =
-      dynamic_cast<MockSearchBar*>(&mock_window.GetSearchBar());
-  ASSERT_TRUE(mock_search_bar != nullptr);
-  mock_search_bar->SimulateFileToSearchEntered("hello.txt");
+  auto* mock_file_search_bar =
+      dynamic_cast<MockFileSearchBar*>(&mock_window.GetFileSearchBar());
+  ASSERT_TRUE(mock_file_search_bar != nullptr);
+  mock_file_search_bar->SimulateFileToSearchEntered("hello.txt");
 }
 
 TEST(WindowTest, EnsureDirectoryChangeRequestReceived) {

@@ -31,16 +31,15 @@ class NavBar {
   virtual void OnUpButtonPress(std::function<void()> callback) = 0;
 };
 
-// Represents the search bar data, and is used to forward signal when text is
-// entered.
-class SearchBar {
+// Used to forward signal when text is entered to search for a file.
+class FileSearchBar {
  public:
-  SearchBar();
-  SearchBar(const SearchBar &) = delete;
-  SearchBar(SearchBar &&) = delete;
-  SearchBar &operator=(const SearchBar &) = delete;
-  SearchBar &operator=(SearchBar &&) = delete;
-  virtual ~SearchBar();
+  FileSearchBar();
+  FileSearchBar(const FileSearchBar &) = delete;
+  FileSearchBar(FileSearchBar &&) = delete;
+  FileSearchBar &operator=(const FileSearchBar &) = delete;
+  FileSearchBar &operator=(FileSearchBar &&) = delete;
+  virtual ~FileSearchBar();
 
   virtual void OnFileToSearchEntered(
       std::function<void(const Glib::ustring &, int *)> callback) = 0;
@@ -72,7 +71,7 @@ class CurrentDirectoryBar {
 class Window {
  public:
   // Dependancy injection method that will take ownership of the nav_bar object.
-  Window(NavBar *nav_bar, SearchBar *search_bar,
+  Window(NavBar *nav_bar, FileSearchBar *search_bar,
          CurrentDirectoryBar *directory_bar);
 
   Window(const Window &) = delete;
@@ -95,15 +94,15 @@ class Window {
 
   // Can be used to extract non-owning handles to GUI internal widgets.
   NavBar &GetNavBar();
-  SearchBar &GetSearchBar();
+  FileSearchBar &GetFileSearchBar();
   CurrentDirectoryBar &GetDirectoryBar();
 
  private:
-  Window(NavBar &nav_bar, SearchBar &search_bar,
+  Window(NavBar &nav_bar, FileSearchBar &search_bar,
          CurrentDirectoryBar &directory_bar);
 
   std::unique_ptr<NavBar> navigate_buttons_;
-  std::unique_ptr<SearchBar> file_search_bar_;
+  std::unique_ptr<FileSearchBar> file_search_bar_;
   std::unique_ptr<CurrentDirectoryBar> current_directory_bar_;
 };
 
