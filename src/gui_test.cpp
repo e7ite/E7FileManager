@@ -14,6 +14,7 @@
 using ::testing::_;
 using ::testing::Exactly;
 using ::testing::InitGoogleTest;
+using ::testing::Return;
 using ::testing::ReturnNull;
 
 namespace {
@@ -76,11 +77,36 @@ class MockSearchBar : public SearchBar {
   std::function<void(const Glib::ustring&, int*)> file_typed_callback_;
 };
 
-// Acts as regular window, and is used to ensure methods of Window are invoked 
+class MockCurrentDirectoryBar : public CurrentDirectoryBar {
+ public:
+  MockCurrentDirectoryBar() : CurrentDirectoryBar() {}
+
+  virtual ~MockCurrentDirectoryBar() {}
+  MockCurrentDirectoryBar(const MockCurrentDirectoryBar&) = delete;
+  MockCurrentDirectoryBar(MockCurrentDirectoryBar&&) = delete;
+  MockCurrentDirectoryBar& operator=(const MockCurrentDirectoryBar&) = delete;
+  MockCurrentDirectoryBar& operator=(MockCurrentDirectoryBar&&) = delete;
+
+  void OnDirectoryChange(
+      std::function<void(const Glib::ustring&, int*)> callback) override {
+    directory_changed_callback_ = callback;
+  }
+
+  void SimulateDirectoryChange(std::string_view file_name) {
+    directory_changed_callback_(Glib::ustring(file_name.data()), nullptr);
+  }
+
+ private:
+  std::function<void(const Glib::ustring&, int*)> directory_changed_callback_;
+};
+
+// Acts as regular window, and is used to ensure methods of Window are invoked
 // and state changes as expected.
 class MockWindow : public Window {
  public:
-  MockWindow() : Window(new MockNavBar(), new MockSearchBar()) {}
+  MockWindow()
+      : Window(new MockNavBar(), new MockSearchBar(),
+               new MockCurrentDirectoryBar()) {}
   virtual ~MockWindow() {}
 
   MockWindow(const MockWindow&) = delete;
@@ -93,6 +119,9 @@ class MockWindow : public Window {
   MOCK_METHOD(void, GoUpDirectory, (), (override));
 
   MOCK_METHOD(dirent*, SearchForFile, (Glib::UStringView file_name),
+              (override));
+
+  MOCK_METHOD(bool, UpdateDirectory, (Glib::UStringView new_directory),
               (override));
 };
 
@@ -131,6 +160,19 @@ TEST(WindowTest, EnsureFileIsSearchedFor) {
       dynamic_cast<MockSearchBar*>(&mock_window.GetSearchBar());
   ASSERT_TRUE(mock_search_bar != nullptr);
   mock_search_bar->SimulateFileToSearchEntered("hello.txt");
+}
+
+TEST(WindowTest, EnsureDirectoryChangeRequestReceived) {
+  MockWindow mock_window;
+  // Expect anything directory name for now, since there is no
+  // operator==(Glib::UStringView, Glib::UStringView). Fix later.
+  EXPECT_CALL(mock_window, UpdateDirectory(_))
+      .Times(Exactly(1))
+      .WillOnce(Return(true));
+  auto* mock_directory_bar =
+      dynamic_cast<MockCurrentDirectoryBar*>(&mock_window.GetDirectoryBar());
+  ASSERT_TRUE(mock_directory_bar != nullptr);
+  mock_directory_bar->SimulateDirectoryChange("hello.txt");
 }
 
 }  // namespace

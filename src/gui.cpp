@@ -84,26 +84,52 @@ class UISearchBar : public SearchBar {
   Gtk::Entry file_search_entry_box_;
 };
 
+class UICurrentDirectoryBar : public CurrentDirectoryBar {
+ public:
+  UICurrentDirectoryBar() {}
+
+  UICurrentDirectoryBar(const UICurrentDirectoryBar &) = delete;
+  UICurrentDirectoryBar(UICurrentDirectoryBar &&) = delete;
+  UICurrentDirectoryBar &operator=(const UICurrentDirectoryBar &) = delete;
+  UICurrentDirectoryBar &operator=(UICurrentDirectoryBar &&) = delete;
+  virtual ~UICurrentDirectoryBar() {}
+
+  void OnDirectoryChange(
+      std::function<void(const Glib::ustring &, int *)> callback) override {}
+};
+
 }  // namespace
 
 NavBar::NavBar() {}
 NavBar::~NavBar() {}
 SearchBar::SearchBar() {}
 SearchBar::~SearchBar() {}
+CurrentDirectoryBar::CurrentDirectoryBar() {}
+CurrentDirectoryBar::~CurrentDirectoryBar() {}
 
-Window::Window(NavBar *nav_bar, SearchBar *search_bar)
-    : Window(*nav_bar, *search_bar) {}
-Window::Window(NavBar &nav_bar, SearchBar &search_bar)
-    : navigate_buttons_(&nav_bar), file_search_bar_(&search_bar) {
+Window::Window(NavBar *nav_bar, SearchBar *search_bar,
+               CurrentDirectoryBar *directory_bar)
+    : Window(*nav_bar, *search_bar, *directory_bar) {}
+Window::Window(NavBar &nav_bar, SearchBar &search_bar,
+               CurrentDirectoryBar &directory_bar)
+    : navigate_buttons_(&nav_bar),
+      file_search_bar_(&search_bar),
+      current_directory_bar_(&directory_bar) {
   navigate_buttons_->OnBackButtonPress([this]() { this->GoBackDirectory(); });
   navigate_buttons_->OnUpButtonPress([this]() { this->GoUpDirectory(); });
   navigate_buttons_->OnForwardButtonPress(
       [this]() { this->GoForwardDirectory(); });
-      
+
   file_search_bar_->OnFileToSearchEntered(
       [this](const Glib::ustring &file_name, [[maybe_unused]] int *) {
         Glib::UStringView file_name_view = file_name;
         this->SearchForFile(file_name_view);
+      });
+
+  current_directory_bar_->OnDirectoryChange(
+      [this](const Glib::ustring &directory_name, [[maybe_unused]] int *) {
+        Glib::UStringView directory_name_view = directory_name;
+        this->UpdateDirectory(directory_name_view);
       });
 }
 
@@ -115,10 +141,16 @@ void Window::GoForwardDirectory() {}
 
 dirent *Window::SearchForFile(Glib::UStringView file_name) { return nullptr; }
 
+bool Window::UpdateDirectory(Glib::UStringView new_directory) { return true; }
+
 NavBar &Window::GetNavBar() { return *navigate_buttons_.get(); }
 SearchBar &Window::GetSearchBar() { return *file_search_bar_.get(); }
+CurrentDirectoryBar &Window::GetDirectoryBar() {
+  return *current_directory_bar_.get();
+}
 
-UIWindow::UIWindow() : ::Window(new UINavBar(), new UISearchBar()) {
+UIWindow::UIWindow()
+    : ::Window(new UINavBar(), new UISearchBar(), new UICurrentDirectoryBar()) {
   add(window_widgets_);
 
   // Insert the navigation bar at the top left of the window. Have to dynamic

@@ -46,13 +46,34 @@ class SearchBar {
       std::function<void(const Glib::ustring &, int *)> callback) = 0;
 };
 
+// Used to request a change to the current directory, and to receive a signal
+// from the main window that the directory has been changed by the window
+// itself.
+class CurrentDirectoryBar {
+ public:
+  CurrentDirectoryBar();
+
+  CurrentDirectoryBar(const CurrentDirectoryBar &) = delete;
+  CurrentDirectoryBar(CurrentDirectoryBar &&) = delete;
+  CurrentDirectoryBar &operator=(const CurrentDirectoryBar &) = delete;
+  CurrentDirectoryBar &operator=(CurrentDirectoryBar &&) = delete;
+  virtual ~CurrentDirectoryBar();
+
+  // This can be used to register an action to take when there is a request to
+  // update the directory, specifically from the directory bar. This can be
+  // such as when a user manually enters a directory to navigate to.
+  virtual void OnDirectoryChange(
+      std::function<void(const Glib::ustring &, int *)> callback) = 0;
+};
+
 // Base data structure for application window that holds all internal state,
 // and avoids containing any information related to GTK, tests, etc. Add
 // external data through inheritance.
 class Window {
  public:
   // Dependancy injection method that will take ownership of the nav_bar object.
-  Window(NavBar *nav_bar, SearchBar *search_bar);
+  Window(NavBar *nav_bar, SearchBar *search_bar,
+         CurrentDirectoryBar *directory_bar);
 
   Window(const Window &) = delete;
   Window(Window &&) = delete;
@@ -64,17 +85,26 @@ class Window {
   virtual void GoForwardDirectory();
   virtual void GoUpDirectory();
 
+  // Method to request for the window to change the current directory, based on
+  // the argument. Returns false if the directory entered is not found.
+  //
+  // Only full paths are accepted through new_directory. Relative paths are not.
+  virtual bool UpdateDirectory(Glib::UStringView new_directory);
+
   virtual dirent *SearchForFile(Glib::UStringView file_name);
 
   // Can be used to extract non-owning handles to GUI internal widgets.
   NavBar &GetNavBar();
   SearchBar &GetSearchBar();
+  CurrentDirectoryBar &GetDirectoryBar();
 
  private:
-  Window(NavBar &nav_bar, SearchBar &search_bar);
+  Window(NavBar &nav_bar, SearchBar &search_bar,
+         CurrentDirectoryBar &directory_bar);
 
   std::unique_ptr<NavBar> navigate_buttons_;
   std::unique_ptr<SearchBar> file_search_bar_;
+  std::unique_ptr<CurrentDirectoryBar> current_directory_bar_;
 };
 
 // Represents the whole GUI structure including the file manager's internal
