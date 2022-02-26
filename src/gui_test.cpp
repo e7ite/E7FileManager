@@ -31,8 +31,6 @@ class MockNavBar : public NavBar {
   MockNavBar& operator=(MockNavBar&&) = delete;
   virtual ~MockNavBar() {}
 
-  // Registers a callback to invoke when each button is pressed. If you wish to
-  // pass in arguments, wrap the call in a lambda.
   void OnBackButtonPress(std::function<void()> callback) override {
     back_button_callback_ = callback;
   }
@@ -53,8 +51,8 @@ class MockNavBar : public NavBar {
   std::function<void()> up_button_callback_;
 };
 
-// Acts as the search bar, and is used to ensure methods of Window are invoked
-// for when the user enters text to search for.
+// Acts as the file search bar, and is used to ensure methods of Window are
+// invoked when the user enters a file to search for.
 class MockFileSearchBar : public FileSearchBar {
  public:
   MockFileSearchBar() : FileSearchBar() {}
@@ -77,6 +75,9 @@ class MockFileSearchBar : public FileSearchBar {
   std::function<void(const Glib::ustring&, int*)> file_typed_callback_;
 };
 
+// Acts as the display of the current directory. Can send fake responses 
+// imititating calls from GTKMM, to mimic a user requesting a change to the 
+// current directory.
 class MockCurrentDirectoryBar : public CurrentDirectoryBar {
  public:
   MockCurrentDirectoryBar() : CurrentDirectoryBar() {}
@@ -152,7 +153,7 @@ TEST(WindowTest, EnsureUpButtonRequestReceived) {
 TEST(WindowTest, EnsureFileIsSearchedFor) {
   MockWindow mock_window;
   // Expect anything file name for now, since there is no
-  //ß operator==(Glib::UStringView, Glib::UStringView). Fix later.
+  // operator==(Glib::UStringView, Glib::UStringView). Fix later.
   EXPECT_CALL(mock_window, SearchForFile(_))
       .Times(Exactly(1))
       .WillOnce(ReturnNull());

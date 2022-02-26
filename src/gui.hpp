@@ -70,7 +70,7 @@ class CurrentDirectoryBar {
 // external data through inheritance.
 class Window {
  public:
-  // Dependancy injection method that will take ownership of the nav_bar object.
+  // Dependancy injection method that will take ownership of passed in objects.
   Window(NavBar *nav_bar, FileSearchBar *search_bar,
          CurrentDirectoryBar *directory_bar);
 
@@ -80,6 +80,10 @@ class Window {
   Window &operator=(Window &&) = delete;
   virtual ~Window();
 
+  // Will update the current directory respective to which method below has been 
+  // invoked.
+  //
+  // TODO: Add error checking that works with GoogleTest.
   virtual void GoBackDirectory();
   virtual void GoForwardDirectory();
   virtual void GoUpDirectory();
@@ -90,6 +94,9 @@ class Window {
   // Only full paths are accepted through new_directory. Relative paths are not.
   virtual bool UpdateDirectory(Glib::UStringView new_directory);
 
+  // Will search for the file passed in, relative to the current directory.
+  //
+  // Returns nullptr if the file name does not exist.
   virtual dirent *SearchForFile(Glib::UStringView file_name);
 
   // Can be used to extract non-owning handles to GUI internal widgets.
