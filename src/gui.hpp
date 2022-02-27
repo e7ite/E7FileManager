@@ -71,8 +71,8 @@ class CurrentDirectoryBar {
 class Window {
  public:
   // Dependancy injection method that will take ownership of passed in objects.
-  Window(NavBar *nav_bar, FileSearchBar *search_bar,
-         CurrentDirectoryBar *directory_bar);
+  Window(NavBar &nav_bar, FileSearchBar &search_bar,
+         CurrentDirectoryBar &directory_bar);
 
   Window(const Window &) = delete;
   Window(Window &&) = delete;
@@ -80,7 +80,7 @@ class Window {
   Window &operator=(Window &&) = delete;
   virtual ~Window();
 
-  // Will update the current directory respective to which method below has been 
+  // Will update the current directory respective to which method below has been
   // invoked.
   //
   // TODO: Add error checking that works with GoogleTest.
@@ -105,9 +105,6 @@ class Window {
   CurrentDirectoryBar &GetDirectoryBar();
 
  private:
-  Window(NavBar &nav_bar, FileSearchBar &search_bar,
-         CurrentDirectoryBar &directory_bar);
-
   std::unique_ptr<NavBar> navigate_buttons_;
   std::unique_ptr<FileSearchBar> file_search_bar_;
   std::unique_ptr<CurrentDirectoryBar> current_directory_bar_;
