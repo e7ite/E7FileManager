@@ -59,12 +59,18 @@ class UICurrentDirectoryBar : public CurrentDirectoryBar {
  public:
   UICurrentDirectoryBar() {
     // Required to make box not expand vertically.
-    file_search_entry_box_.set_halign(Gtk::ALIGN_END);
-    file_search_entry_box_.set_valign(Gtk::ALIGN_START);
+    entry_box_border_.set_halign(Gtk::ALIGN_END);
+    entry_box_border_.set_valign(Gtk::ALIGN_START);
+    entry_box_border_.set_orientation(Gtk::Orientation::ORIENTATION_VERTICAL);
 
-    file_search_entry_box_.set_placeholder_text("File to enter...");
+    entry_box_border_.pack_start(file_search_entry_box_);
+    entry_box_border_.pack_start(current_directory_entry_box_);
+
+    file_search_entry_box_.set_placeholder_text("File to search...");
 
     file_search_entry_box_.set_size_request(50, 20);
+
+    current_directory_entry_box_.set_size_request(50, 20);
   }
 
   UICurrentDirectoryBar(const UICurrentDirectoryBar &) = delete;
@@ -81,10 +87,12 @@ class UICurrentDirectoryBar : public CurrentDirectoryBar {
     file_search_entry_box_.signal_insert_text().connect(callback);
   }
 
-  Gtk::Entry &GetTextBox() { return file_search_entry_box_; }
+  Gtk::Box &GetBorder() { return entry_box_border_; }
 
  private:
+  Gtk::Box entry_box_border_;
   Gtk::Entry file_search_entry_box_;
+  Gtk::Entry current_directory_entry_box_;
 };
 
 }  // namespace
@@ -128,6 +136,11 @@ CurrentDirectoryBar &Window::GetDirectoryBar() {
   return *current_directory_bar_.get();
 }
 
+bool CurrentDirectoryBar::SetDisplayedDirectory(
+    Glib::UStringView new_directory) {
+  return true;
+}
+
 UIWindow::UIWindow() : ::Window(*new UINavBar(), *new UICurrentDirectoryBar()) {
   add(window_widgets_);
 
@@ -140,7 +153,7 @@ UIWindow::UIWindow() : ::Window(*new UINavBar(), *new UICurrentDirectoryBar()) {
 
   auto &directory_bar =
       dynamic_cast<UICurrentDirectoryBar &>(GetDirectoryBar());
-  window_widgets_.pack_end(directory_bar.GetTextBox(),
+  window_widgets_.pack_end(directory_bar.GetBorder(),
                            Gtk::PackOptions::PACK_SHRINK);
 
   show_all();

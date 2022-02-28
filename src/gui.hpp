@@ -32,7 +32,7 @@ class NavBar {
 };
 
 // Interface for showing the current directory and searching for a file relative
-// to the current directory. Used to request a change to the current directory, 
+// to the current directory. Used to request a change to the current directory,
 // to receive a signal from the main window that the directory has been
 // changed by the window itself, and to handle file search requests.
 class CurrentDirectoryBar {
@@ -44,6 +44,11 @@ class CurrentDirectoryBar {
   CurrentDirectoryBar &operator=(const CurrentDirectoryBar &) = delete;
   CurrentDirectoryBar &operator=(CurrentDirectoryBar &&) = delete;
   virtual ~CurrentDirectoryBar();
+
+  // This sets the internal text displayed for the current directory text box
+  // (located below the file search box), to the argument. Returns false if the
+  // directory does not exist, true otherwise.
+  virtual bool SetDisplayedDirectory(Glib::UStringView new_directory);
 
   // This can be used to register an action to take when there is a request to
   // update the directory, specifically from the directory bar. This can be

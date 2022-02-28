@@ -64,6 +64,9 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
   MockCurrentDirectoryBar& operator=(const MockCurrentDirectoryBar&) = delete;
   MockCurrentDirectoryBar& operator=(MockCurrentDirectoryBar&&) = delete;
 
+  MOCK_METHOD(bool, SetDisplayedDirectory, (Glib::UStringView new_directory),
+              (override));
+
   void OnDirectoryChange(
       std::function<void(const Glib::ustring&, int*)> callback) override {
     directory_changed_callback_ = callback;
@@ -108,6 +111,10 @@ class MockWindow : public Window {
 
   MOCK_METHOD(bool, UpdateDirectory, (Glib::UStringView new_directory),
               (override));
+
+  void SimulateDirectoryChange(Glib::UStringView new_directory) {
+    GetDirectoryBar().SetDisplayedDirectory(new_directory);
+  }
 };
 
 TEST(WindowTest, EnsureBackButtonRequestReceived) {
@@ -158,6 +165,17 @@ TEST(WindowTest, EnsureDirectoryChangeRequestReceived) {
       dynamic_cast<MockCurrentDirectoryBar*>(&mock_window.GetDirectoryBar());
   ASSERT_TRUE(mock_directory_bar != nullptr);
   mock_directory_bar->SimulateDirectoryChange("hello.txt");
+}
+
+TEST(WindowTest, EnsureDirectoryWidgetReceivesUpdatedDirectory) {
+  MockWindow mock_window;
+  auto* mock_directory_bar =
+      dynamic_cast<MockCurrentDirectoryBar*>(&mock_window.GetDirectoryBar());
+  ASSERT_TRUE(mock_directory_bar != nullptr);
+  EXPECT_CALL(*mock_directory_bar, SetDisplayedDirectory(_))
+      .Times(Exactly(1))
+      .WillOnce(Return(true));
+  mock_window.SimulateDirectoryChange("/tmp/directory/");
 }
 
 }  // namespace
