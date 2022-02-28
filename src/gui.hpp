@@ -31,23 +31,10 @@ class NavBar {
   virtual void OnUpButtonPress(std::function<void()> callback) = 0;
 };
 
-// Used to forward signal when text is entered to search for a file.
-class FileSearchBar {
- public:
-  FileSearchBar();
-  FileSearchBar(const FileSearchBar &) = delete;
-  FileSearchBar(FileSearchBar &&) = delete;
-  FileSearchBar &operator=(const FileSearchBar &) = delete;
-  FileSearchBar &operator=(FileSearchBar &&) = delete;
-  virtual ~FileSearchBar();
-
-  virtual void OnFileToSearchEntered(
-      std::function<void(const Glib::ustring &, int *)> callback) = 0;
-};
-
-// Used to request a change to the current directory, and to receive a signal
-// from the main window that the directory has been changed by the window
-// itself.
+// Interface for showing the current directory and searching for a file relative
+// to the current directory. Used to request a change to the current directory, 
+// to receive a signal from the main window that the directory has been
+// changed by the window itself, and to handle file search requests.
 class CurrentDirectoryBar {
  public:
   CurrentDirectoryBar();
@@ -63,6 +50,11 @@ class CurrentDirectoryBar {
   // such as when a user manually enters a directory to navigate to.
   virtual void OnDirectoryChange(
       std::function<void(const Glib::ustring &, int *)> callback) = 0;
+
+  // Registers an action to take when there is a request to search for a file.
+  // Happens when the user types a file name into the file search bar.
+  virtual void OnFileToSearchEntered(
+      std::function<void(const Glib::ustring &, int *)> callback) = 0;
 };
 
 // Base data structure for application window that holds all internal state,
@@ -71,8 +63,7 @@ class CurrentDirectoryBar {
 class Window {
  public:
   // Dependancy injection method that will take ownership of passed in objects.
-  Window(NavBar &nav_bar, FileSearchBar &search_bar,
-         CurrentDirectoryBar &directory_bar);
+  Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar);
 
   Window(const Window &) = delete;
   Window(Window &&) = delete;
@@ -101,12 +92,10 @@ class Window {
 
   // Can be used to extract non-owning handles to GUI internal widgets.
   NavBar &GetNavBar();
-  FileSearchBar &GetFileSearchBar();
   CurrentDirectoryBar &GetDirectoryBar();
 
  private:
   std::unique_ptr<NavBar> navigate_buttons_;
-  std::unique_ptr<FileSearchBar> file_search_bar_;
   std::unique_ptr<CurrentDirectoryBar> current_directory_bar_;
 };
 

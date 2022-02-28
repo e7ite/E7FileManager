@@ -55,9 +55,9 @@ class UINavBar : public NavBar {
   Gtk::Button up_button_;
 };
 
-class UIFileSearchBar : public FileSearchBar {
+class UICurrentDirectoryBar : public CurrentDirectoryBar {
  public:
-  UIFileSearchBar() {
+  UICurrentDirectoryBar() {
     // Required to make box not expand vertically.
     file_search_entry_box_.set_halign(Gtk::ALIGN_END);
     file_search_entry_box_.set_valign(Gtk::ALIGN_START);
@@ -67,11 +67,14 @@ class UIFileSearchBar : public FileSearchBar {
     file_search_entry_box_.set_size_request(50, 20);
   }
 
-  UIFileSearchBar(const UIFileSearchBar &) = delete;
-  UIFileSearchBar(UIFileSearchBar &&) = delete;
-  UIFileSearchBar &operator=(const UIFileSearchBar &) = delete;
-  UIFileSearchBar &operator=(UIFileSearchBar &&) = delete;
-  virtual ~UIFileSearchBar() {}
+  UICurrentDirectoryBar(const UICurrentDirectoryBar &) = delete;
+  UICurrentDirectoryBar(UICurrentDirectoryBar &&) = delete;
+  UICurrentDirectoryBar &operator=(const UICurrentDirectoryBar &) = delete;
+  UICurrentDirectoryBar &operator=(UICurrentDirectoryBar &&) = delete;
+  virtual ~UICurrentDirectoryBar() {}
+
+  void OnDirectoryChange(
+      std::function<void(const Glib::ustring &, int *)> callback) override {}
 
   void OnFileToSearchEntered(
       std::function<void(const Glib::ustring &, int *)> callback) override {
@@ -84,45 +87,25 @@ class UIFileSearchBar : public FileSearchBar {
   Gtk::Entry file_search_entry_box_;
 };
 
-class UICurrentDirectoryBar : public CurrentDirectoryBar {
- public:
-  UICurrentDirectoryBar() {}
-
-  UICurrentDirectoryBar(const UICurrentDirectoryBar &) = delete;
-  UICurrentDirectoryBar(UICurrentDirectoryBar &&) = delete;
-  UICurrentDirectoryBar &operator=(const UICurrentDirectoryBar &) = delete;
-  UICurrentDirectoryBar &operator=(UICurrentDirectoryBar &&) = delete;
-  virtual ~UICurrentDirectoryBar() {}
-
-  void OnDirectoryChange(
-      std::function<void(const Glib::ustring &, int *)> callback) override {}
-};
-
 }  // namespace
 
 NavBar::NavBar() {}
 NavBar::~NavBar() {}
-FileSearchBar::FileSearchBar() {}
-FileSearchBar::~FileSearchBar() {}
 CurrentDirectoryBar::CurrentDirectoryBar() {}
 CurrentDirectoryBar::~CurrentDirectoryBar() {}
 
-Window::Window(NavBar &nav_bar, FileSearchBar &search_bar,
-               CurrentDirectoryBar &directory_bar)
-    : navigate_buttons_(&nav_bar),
-      file_search_bar_(&search_bar),
-      current_directory_bar_(&directory_bar) {
+Window::Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar)
+    : navigate_buttons_(&nav_bar), current_directory_bar_(&directory_bar) {
   navigate_buttons_->OnBackButtonPress([this]() { this->GoBackDirectory(); });
   navigate_buttons_->OnUpButtonPress([this]() { this->GoUpDirectory(); });
   navigate_buttons_->OnForwardButtonPress(
       [this]() { this->GoForwardDirectory(); });
 
-  file_search_bar_->OnFileToSearchEntered(
+  current_directory_bar_->OnFileToSearchEntered(
       [this](const Glib::ustring &file_name, [[maybe_unused]] int *) {
         Glib::UStringView file_name_view = file_name;
         this->SearchForFile(file_name_view);
       });
-
   current_directory_bar_->OnDirectoryChange(
       [this](const Glib::ustring &directory_name, [[maybe_unused]] int *) {
         Glib::UStringView directory_name_view = directory_name;
@@ -141,14 +124,11 @@ dirent *Window::SearchForFile(Glib::UStringView file_name) { return nullptr; }
 bool Window::UpdateDirectory(Glib::UStringView new_directory) { return true; }
 
 NavBar &Window::GetNavBar() { return *navigate_buttons_.get(); }
-FileSearchBar &Window::GetFileSearchBar() { return *file_search_bar_.get(); }
 CurrentDirectoryBar &Window::GetDirectoryBar() {
   return *current_directory_bar_.get();
 }
 
-UIWindow::UIWindow()
-    : ::Window(*new UINavBar(), *new UIFileSearchBar(),
-               *new UICurrentDirectoryBar()) {
+UIWindow::UIWindow() : ::Window(*new UINavBar(), *new UICurrentDirectoryBar()) {
   add(window_widgets_);
 
   // Insert the navigation bar at the top left of the window. Have to dynamic
@@ -158,8 +138,9 @@ UIWindow::UIWindow()
   window_widgets_.pack_start(nav_bar.GetBorder(),
                              Gtk::PackOptions::PACK_SHRINK);
 
-  auto &search_bar = dynamic_cast<UIFileSearchBar &>(GetFileSearchBar());
-  window_widgets_.pack_end(search_bar.GetTextBox(),
+  auto &directory_bar =
+      dynamic_cast<UICurrentDirectoryBar &>(GetDirectoryBar());
+  window_widgets_.pack_end(directory_bar.GetTextBox(),
                            Gtk::PackOptions::PACK_SHRINK);
 
   show_all();

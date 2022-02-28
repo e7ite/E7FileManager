@@ -51,33 +51,9 @@ class MockNavBar : public NavBar {
   std::function<void()> up_button_callback_;
 };
 
-// Acts as the file search bar, and is used to ensure methods of Window are
-// invoked when the user enters a file to search for.
-class MockFileSearchBar : public FileSearchBar {
- public:
-  MockFileSearchBar() : FileSearchBar() {}
-  virtual ~MockFileSearchBar() {}
-  MockFileSearchBar(const MockFileSearchBar&) = delete;
-  MockFileSearchBar(MockFileSearchBar&&) = delete;
-  MockFileSearchBar& operator=(const MockFileSearchBar&) = delete;
-  MockFileSearchBar& operator=(MockFileSearchBar&&) = delete;
-
-  void OnFileToSearchEntered(
-      std::function<void(const Glib::ustring&, int*)> callback) override {
-    file_typed_callback_ = callback;
-  }
-
-  void SimulateFileToSearchEntered(std::string_view file_name) {
-    file_typed_callback_(Glib::ustring(file_name.data()), nullptr);
-  }
-
- private:
-  std::function<void(const Glib::ustring&, int*)> file_typed_callback_;
-};
-
-// Acts as the display of the current directory. Can send fake responses
-// imititating calls from GTKMM, to mimic a user requesting a change to the
-// current directory.
+// Acts as the display of the current directory and the file search bar. Can
+// send fake responses imititating calls from GTKMM, to mimic a user requesting
+// a change to the current directory or a file search.
 class MockCurrentDirectoryBar : public CurrentDirectoryBar {
  public:
   MockCurrentDirectoryBar() : CurrentDirectoryBar() {}
@@ -97,7 +73,17 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
     directory_changed_callback_(Glib::ustring(file_name.data()), nullptr);
   }
 
+  void OnFileToSearchEntered(
+      std::function<void(const Glib::ustring&, int*)> callback) override {
+    file_typed_callback_ = callback;
+  }
+
+  void SimulateFileToSearchEntered(std::string_view file_name) {
+    file_typed_callback_(Glib::ustring(file_name.data()), nullptr);
+  }
+
  private:
+  std::function<void(const Glib::ustring&, int*)> file_typed_callback_;
   std::function<void(const Glib::ustring&, int*)> directory_changed_callback_;
 };
 
@@ -105,9 +91,7 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
 // and state changes as expected.
 class MockWindow : public Window {
  public:
-  MockWindow()
-      : Window(*new MockNavBar(), *new MockFileSearchBar(),
-               *new MockCurrentDirectoryBar()) {}
+  MockWindow() : Window(*new MockNavBar(), *new MockCurrentDirectoryBar()) {}
   virtual ~MockWindow() {}
 
   MockWindow(const MockWindow&) = delete;
@@ -157,10 +141,10 @@ TEST(WindowTest, EnsureFileIsSearchedFor) {
   EXPECT_CALL(mock_window, SearchForFile(_))
       .Times(Exactly(1))
       .WillOnce(ReturnNull());
-  auto* mock_file_search_bar =
-      dynamic_cast<MockFileSearchBar*>(&mock_window.GetFileSearchBar());
-  ASSERT_TRUE(mock_file_search_bar != nullptr);
-  mock_file_search_bar->SimulateFileToSearchEntered("hello.txt");
+  auto* mock_directory_bar =
+      dynamic_cast<MockCurrentDirectoryBar*>(&mock_window.GetDirectoryBar());
+  ASSERT_TRUE(mock_directory_bar != nullptr);
+  mock_directory_bar->SimulateFileToSearchEntered("hello.txt");
 }
 
 TEST(WindowTest, EnsureDirectoryChangeRequestReceived) {
