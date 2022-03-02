@@ -4,7 +4,7 @@
 #include <dirent.h>
 #include <glibmm/stringutils.h>
 #include <glibmm/ustring.h>
-#include <gtkmm/box.h>
+#include <gtkmm/grid.h>
 #include <gtkmm/window.h>
 
 #include <functional>
@@ -154,7 +154,7 @@ class UIWindow : public Gtk::Window, public Window {
  private:
   UIWindow(NavBar &nav_bar);
 
-  Gtk::Box window_widgets_;
+  Gtk::Grid window_widgets_;
 };
 
 #endif  // GUI_HPP

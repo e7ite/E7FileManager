@@ -6,6 +6,7 @@
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
 #include <gtkmm/entry.h>
+#include <gtkmm/grid.h>
 #include <gtkmm/window.h>
 
 #include <functional>
@@ -180,17 +181,23 @@ UIWindow::UIWindow()
                *new UIDirectoryFilesView()) {
   add(window_widgets_);
 
+  set_size_request(600, 600);
+
+  /* set the spacing to 10 on x and 10 on y */
+  window_widgets_.set_row_spacing(300);
+  window_widgets_.set_column_spacing(300);
+  window_widgets_.set_vexpand(true);
+  window_widgets_.set_hexpand(true);
+
   // Insert the navigation bar at the top left of the window. Have to dynamic
   // cast it since it's stored as the base type, but we know it's for sure a
   // UINavBar, so no error-checking.
   auto &nav_bar = dynamic_cast<UINavBar &>(GetNavBar());
-  window_widgets_.pack_start(nav_bar.GetBorder(),
-                             Gtk::PackOptions::PACK_SHRINK);
+  window_widgets_.attach(nav_bar.GetBorder(), /*left=*/0, /*top=*/0);
 
   auto &directory_bar =
       dynamic_cast<UICurrentDirectoryBar &>(GetDirectoryBar());
-  window_widgets_.pack_end(directory_bar.GetBorder(),
-                           Gtk::PackOptions::PACK_SHRINK);
+  window_widgets_.attach(directory_bar.GetBorder(), /*left=*/1, /*top=*/0);
 
   show_all();
 }
