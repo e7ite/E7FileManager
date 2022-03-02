@@ -5,8 +5,6 @@
 #include <glibmm/ustring.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtkmm/box.h>
-#include <gtkmm/button.h>
 #include <gtkmm/window.h>
 
 #include <string_view>
@@ -90,11 +88,46 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
   std::function<void(const Glib::ustring&, int*)> directory_changed_callback_;
 };
 
+class MockDirectoryFilesView : public DirectoryFilesView {
+ public:
+  MockDirectoryFilesView() {}
+
+  virtual ~MockDirectoryFilesView() {}
+  MockDirectoryFilesView(const MockDirectoryFilesView&) = delete;
+  MockDirectoryFilesView(MockDirectoryFilesView&&) = delete;
+  MockDirectoryFilesView& operator=(const MockDirectoryFilesView&) = delete;
+  MockDirectoryFilesView& operator=(MockDirectoryFilesView&&) = delete;
+
+  void OnFileClick(
+      std::function<void(const Glib::ustring&)> callback) override {
+    file_clicked_callback_ = callback;
+  }
+
+  void OnDirectoryClick(
+      std::function<void(const Glib::ustring&)> callback) override {
+    directory_clicked_callback_ = callback;
+  }
+
+  void SimulateFileClick(const Glib::ustring& file_name) {
+    file_clicked_callback_(file_name);
+  }
+
+  void SimulateDirectoryClick(const Glib::ustring& directory_name) {
+    directory_clicked_callback_(directory_name);
+  }
+
+ private:
+  std::function<void(const Glib::ustring&)> file_clicked_callback_;
+  std::function<void(const Glib::ustring&)> directory_clicked_callback_;
+};
+
 // Acts as regular window, and is used to ensure methods of Window are invoked
 // and state changes as expected.
 class MockWindow : public Window {
  public:
-  MockWindow() : Window(*new MockNavBar(), *new MockCurrentDirectoryBar()) {}
+  MockWindow()
+      : Window(*new MockNavBar(), *new MockCurrentDirectoryBar(),
+               *new MockDirectoryFilesView()) {}
   virtual ~MockWindow() {}
 
   MockWindow(const MockWindow&) = delete;
@@ -111,6 +144,8 @@ class MockWindow : public Window {
 
   MOCK_METHOD(bool, UpdateDirectory, (Glib::UStringView new_directory),
               (override));
+
+  MOCK_METHOD(void, ShowFileDetails, (Glib::UStringView file_name), (override));
 
   void SimulateDirectoryChange(Glib::UStringView new_directory) {
     GetDirectoryBar().SetDisplayedDirectory(new_directory);
@@ -176,6 +211,26 @@ TEST(WindowTest, EnsureDirectoryWidgetReceivesUpdatedDirectory) {
       .Times(Exactly(1))
       .WillOnce(Return(true));
   mock_window.SimulateDirectoryChange("/tmp/directory/");
+}
+
+TEST(WindowTest, EnsureFileClickReceivedOnFileSelection) {
+  MockWindow mock_window;
+  auto* mock_directory_files_view = dynamic_cast<MockDirectoryFilesView*>(
+      &mock_window.GetDirectoryFilesView());
+  ASSERT_TRUE(mock_directory_files_view != nullptr);
+  EXPECT_CALL(mock_window, ShowFileDetails(_)).Times(Exactly(1));
+  mock_directory_files_view->SimulateFileClick("cat.txt");
+}
+
+TEST(WindowTest, EnsureDirectoryUpdateOnDirectorySelection) {
+  MockWindow mock_window;
+  auto* mock_directory_files_view = dynamic_cast<MockDirectoryFilesView*>(
+      &mock_window.GetDirectoryFilesView());
+  ASSERT_TRUE(mock_directory_files_view != nullptr);
+  EXPECT_CALL(mock_window, UpdateDirectory(_))
+      .Times(Exactly(1))
+      .WillOnce(Return(true));
+  mock_directory_files_view->SimulateDirectoryClick("cat.txt");
 }
 
 }  // namespace

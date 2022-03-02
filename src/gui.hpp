@@ -62,13 +62,41 @@ class CurrentDirectoryBar {
       std::function<void(const Glib::ustring &, int *)> callback) = 0;
 };
 
+// Represents the window that lists the files in a directory on the file system.
+// Provides updates when a file or directory is clicked.
+class DirectoryFilesView {
+ public:
+  DirectoryFilesView();
+
+  DirectoryFilesView(const DirectoryFilesView &) = delete;
+  DirectoryFilesView(DirectoryFilesView &&) = delete;
+  DirectoryFilesView &operator=(const DirectoryFilesView &) = delete;
+  DirectoryFilesView &operator=(DirectoryFilesView &&) = delete;
+  virtual ~DirectoryFilesView();
+
+  // Registers the action to take when a file is clicked in the directory view.
+  // This does not include when a directory is clicked. OnDirectoryClicked() can
+  // be used to check that behavior.
+  virtual void OnFileClick(
+      std::function<void(const Glib::ustring &)> callback) = 0;
+
+  // Registers the action to take when a directory is clicked in the directory
+  // view.
+  //
+  // This does not include when a file is clicked. OnFileClicked() can be used
+  // to check that behavior.
+  virtual void OnDirectoryClick(
+      std::function<void(const Glib::ustring &)> callback) = 0;
+};
+
 // Base data structure for application window that holds all internal state,
 // and avoids containing any information related to GTK, tests, etc. Add
 // external data through inheritance.
 class Window {
  public:
   // Dependancy injection method that will take ownership of passed in objects.
-  Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar);
+  Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar,
+         DirectoryFilesView &directory_window);
 
   Window(const Window &) = delete;
   Window(Window &&) = delete;
@@ -95,13 +123,20 @@ class Window {
   // Returns nullptr if the file name does not exist.
   virtual dirent *SearchForFile(Glib::UStringView file_name);
 
+  // Shows window containing details of a file and a preview of it if possible.
+  //
+  // Does nothing if file does not exist.
+  virtual void ShowFileDetails(Glib::UStringView file_name);
+
   // Can be used to extract non-owning handles to GUI internal widgets.
   NavBar &GetNavBar();
   CurrentDirectoryBar &GetDirectoryBar();
+  DirectoryFilesView &GetDirectoryFilesView();
 
  private:
   std::unique_ptr<NavBar> navigate_buttons_;
   std::unique_ptr<CurrentDirectoryBar> current_directory_bar_;
+  std::unique_ptr<DirectoryFilesView> directory_view_;
 };
 
 // Represents the whole GUI structure including the file manager's internal
