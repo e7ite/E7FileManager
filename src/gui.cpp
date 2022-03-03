@@ -7,6 +7,7 @@
 #include <gtkmm/button.h>
 #include <gtkmm/entry.h>
 #include <gtkmm/grid.h>
+#include <gtkmm/scrolledwindow.h>
 #include <gtkmm/window.h>
 
 #include <functional>
@@ -98,7 +99,29 @@ class UICurrentDirectoryBar : public CurrentDirectoryBar {
 
 class UIDirectoryFilesView : public DirectoryFilesView {
  public:
-  UIDirectoryFilesView() {}
+  UIDirectoryFilesView() {
+    file_entry_widgets_.set_halign(Gtk::ALIGN_START);
+    file_entry_widgets_.set_valign(Gtk::ALIGN_START);
+
+    // Allows adding widgets on bottom of each other.
+    file_entry_widgets_.set_orientation(Gtk::Orientation::ORIENTATION_VERTICAL);
+
+    // Allows window to stay on the bottom right of the main window.
+    file_entries_window_.set_halign(Gtk::ALIGN_END);
+    file_entries_window_.set_valign(Gtk::ALIGN_END);
+    file_entries_window_.set_hexpand(true);
+    file_entries_window_.set_vexpand(true);
+
+    file_entries_window_.set_border_width(10);
+    file_entries_window_.set_size_request(/*width=*/400, /*height=*/450);
+
+    // Create horizontal scroll bars when needed, and vertical scroll bar
+    // always.
+    file_entries_window_.set_policy(/*hscrollbar_policy=*/Gtk::POLICY_AUTOMATIC,
+                                    /*vscrollbar_policy=*/Gtk::POLICY_ALWAYS);
+
+    file_entries_window_.add(file_entry_widgets_);
+  }
 
   UIDirectoryFilesView(const UIDirectoryFilesView &) = delete;
   UIDirectoryFilesView(UIDirectoryFilesView &&) = delete;
@@ -110,6 +133,12 @@ class UIDirectoryFilesView : public DirectoryFilesView {
       std::function<void(const Glib::ustring &)> callback) override {}
   void OnDirectoryClick(
       std::function<void(const Glib::ustring &)> callback) override {}
+
+  Gtk::ScrolledWindow &GetWindow() { return file_entries_window_; }
+
+ private:
+  Gtk::ScrolledWindow file_entries_window_;
+  Gtk::Box file_entry_widgets_;
 };
 
 }  // namespace
@@ -181,13 +210,7 @@ UIWindow::UIWindow()
                *new UIDirectoryFilesView()) {
   add(window_widgets_);
 
-  set_size_request(600, 600);
-
-  /* set the spacing to 10 on x and 10 on y */
-  window_widgets_.set_row_spacing(300);
-  window_widgets_.set_column_spacing(300);
-  window_widgets_.set_vexpand(true);
-  window_widgets_.set_hexpand(true);
+  set_default_size(600, 600);
 
   // Insert the navigation bar at the top left of the window. Have to dynamic
   // cast it since it's stored as the base type, but we know it's for sure a
@@ -198,6 +221,11 @@ UIWindow::UIWindow()
   auto &directory_bar =
       dynamic_cast<UICurrentDirectoryBar &>(GetDirectoryBar());
   window_widgets_.attach(directory_bar.GetBorder(), /*left=*/1, /*top=*/0);
+
+  auto &directory_files_view =
+      dynamic_cast<UIDirectoryFilesView &>(GetDirectoryFilesView());
+  window_widgets_.attach(directory_files_view.GetWindow(), /*left=*/1,
+                         /*top=*/1);
 
   show_all();
 }
