@@ -54,8 +54,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 enable_testing()
 add_compile_options(-g)
-add_executable(gui_test ${PROJECT_SOURCE_DIR}/src/gui.hpp ${PROJECT_SOURCE_DIR}/src/gui.cpp ${PROJECT_SOURCE_DIR}/src/gui_test.cpp)
-target_link_libraries(gui_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status)
+add_executable(gui_test 
+  ${PROJECT_SOURCE_DIR}/src/gui.hpp
+  ${PROJECT_SOURCE_DIR}/src/gui.cpp
+  ${PROJECT_SOURCE_DIR}/src/gui_test.cpp
+)
+target_link_libraries(gui_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status absl::statusor)
 
 include(GoogleTest)
 gtest_discover_tests(gui_test)
