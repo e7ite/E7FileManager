@@ -254,9 +254,9 @@ class MockDirectoryFilesView : public DirectoryFilesView {
 // and state changes as expected.
 class MockWindow : public Window {
  public:
-  MockWindow()
-      : Window(*new MockNavBar(), *new MockCurrentDirectoryBar(),
-               *new MockDirectoryFilesView()) {}
+  MockWindow(NavBar& nav_bar, CurrentDirectoryBar& current_directory_bar,
+             DirectoryFilesView& directory_files_view)
+      : Window(nav_bar, current_directory_bar, directory_files_view) {}
   virtual ~MockWindow() {}
 
   MockWindow(const MockWindow&) = delete;
@@ -281,85 +281,71 @@ class MockWindow : public Window {
   }
 };
 
-TEST(WindowTest, EnsureBackButtonRequestReceived) {
-  MockWindow mock_window;
-  EXPECT_CALL(mock_window, GoBackDirectory()).Times(Exactly(1));
-  auto* mock_nav_bar = dynamic_cast<MockNavBar*>(&mock_window.GetNavBar());
-  ASSERT_TRUE(mock_nav_bar != nullptr);
-  mock_nav_bar->SimulateBackButtonPress();
+class WindowTest : public ::testing::Test {
+ protected:
+  WindowTest()
+      : mock_nav_bar_(*new MockNavBar()),
+        mock_current_directory_bar_(*new MockCurrentDirectoryBar()),
+        mock_directory_files_view_(*new MockDirectoryFilesView()),
+        mock_window_(mock_nav_bar_, mock_current_directory_bar_,
+                     mock_directory_files_view_) {}
+
+  MockNavBar& mock_nav_bar_;
+  MockCurrentDirectoryBar& mock_current_directory_bar_;
+  MockDirectoryFilesView& mock_directory_files_view_;
+  MockWindow mock_window_;
+};
+
+TEST_F(WindowTest, EnsureBackButtonRequestReceived) {
+  EXPECT_CALL(mock_window_, GoBackDirectory()).Times(Exactly(1));
+  mock_nav_bar_.SimulateBackButtonPress();
 }
 
-TEST(WindowTest, EnsureForwardButtonRequestReceived) {
-  MockWindow mock_window;
-  EXPECT_CALL(mock_window, GoForwardDirectory()).Times(Exactly(1));
-  auto* mock_nav_bar = dynamic_cast<MockNavBar*>(&mock_window.GetNavBar());
-  ASSERT_TRUE(mock_nav_bar != nullptr);
-  mock_nav_bar->SimulateForwardButtonPress();
+TEST_F(WindowTest, EnsureForwardButtonRequestReceived) {
+  EXPECT_CALL(mock_window_, GoForwardDirectory()).Times(Exactly(1));
+  mock_nav_bar_.SimulateForwardButtonPress();
 }
 
-TEST(WindowTest, EnsureUpButtonRequestReceived) {
-  MockWindow mock_window;
-  EXPECT_CALL(mock_window, GoUpDirectory()).Times(Exactly(1));
-  auto* mock_nav_bar = dynamic_cast<MockNavBar*>(&mock_window.GetNavBar());
-  ASSERT_TRUE(mock_nav_bar != nullptr);
-  mock_nav_bar->SimulateUpButtonPress();
+TEST_F(WindowTest, EnsureUpButtonRequestReceived) {
+  EXPECT_CALL(mock_window_, GoUpDirectory()).Times(Exactly(1));
+  mock_nav_bar_.SimulateUpButtonPress();
 }
 
-TEST(WindowTest, EnsureFileIsSearchedFor) {
-  MockWindow mock_window;
+TEST_F(WindowTest, EnsureFileIsSearchedFor) {
   // Expect anything file name for now, since there is no
   // operator==(Glib::UStringView, Glib::UStringView). Fix later.
-  EXPECT_CALL(mock_window, SearchForFile(_))
+  EXPECT_CALL(mock_window_, SearchForFile(_))
       .Times(Exactly(1))
       .WillOnce(ReturnNull());
-  auto* mock_directory_bar =
-      dynamic_cast<MockCurrentDirectoryBar*>(&mock_window.GetDirectoryBar());
-  ASSERT_TRUE(mock_directory_bar != nullptr);
-  mock_directory_bar->SimulateFileToSearchEntered("hello.txt");
+  mock_current_directory_bar_.SimulateFileToSearchEntered("hello.txt");
 }
 
-TEST(WindowTest, EnsureDirectoryChangeRequestReceived) {
-  MockWindow mock_window;
+TEST_F(WindowTest, EnsureDirectoryChangeRequestReceived) {
   // Expect anything directory name for now, since there is no
   // operator==(Glib::UStringView, Glib::UStringView). Fix later.
-  EXPECT_CALL(mock_window, UpdateDirectory(_))
+  EXPECT_CALL(mock_window_, UpdateDirectory(_))
       .Times(Exactly(1))
       .WillOnce(Return(true));
-  auto* mock_directory_bar =
-      dynamic_cast<MockCurrentDirectoryBar*>(&mock_window.GetDirectoryBar());
-  ASSERT_TRUE(mock_directory_bar != nullptr);
-  mock_directory_bar->SimulateDirectoryChange("hello.txt");
+  mock_current_directory_bar_.SimulateDirectoryChange("hello.txt");
 }
 
-TEST(WindowTest, EnsureDirectoryWidgetReceivesUpdatedDirectory) {
-  MockWindow mock_window;
-  auto* mock_directory_bar =
-      dynamic_cast<MockCurrentDirectoryBar*>(&mock_window.GetDirectoryBar());
-  ASSERT_TRUE(mock_directory_bar != nullptr);
-  EXPECT_CALL(*mock_directory_bar, SetDisplayedDirectory(_))
+TEST_F(WindowTest, EnsureDirectoryWidgetReceivesUpdatedDirectory) {
+  EXPECT_CALL(mock_current_directory_bar_, SetDisplayedDirectory(_))
       .Times(Exactly(1))
       .WillOnce(Return(true));
-  mock_window.SimulateDirectoryChange("/tmp/directory/");
+  mock_window_.SimulateDirectoryChange("/tmp/directory/");
 }
 
-TEST(WindowTest, EnsureFileClickReceivedOnFileSelection) {
-  MockWindow mock_window;
-  auto* mock_directory_files_view = dynamic_cast<MockDirectoryFilesView*>(
-      &mock_window.GetDirectoryFilesView());
-  ASSERT_TRUE(mock_directory_files_view != nullptr);
-  EXPECT_CALL(mock_window, ShowFileDetails(_)).Times(Exactly(1));
-  mock_directory_files_view->SimulateFileClick("cat.txt");
+TEST_F(WindowTest, EnsureFileClickReceivedOnFileSelection) {
+  EXPECT_CALL(mock_window_, ShowFileDetails(_)).Times(Exactly(1));
+  mock_directory_files_view_.SimulateFileClick("cat.txt");
 }
 
-TEST(WindowTest, EnsureDirectoryUpdateOnDirectorySelection) {
-  MockWindow mock_window;
-  auto* mock_directory_files_view = dynamic_cast<MockDirectoryFilesView*>(
-      &mock_window.GetDirectoryFilesView());
-  ASSERT_TRUE(mock_directory_files_view != nullptr);
-  EXPECT_CALL(mock_window, UpdateDirectory(_))
+TEST_F(WindowTest, EnsureDirectoryUpdateOnDirectorySelection) {
+  EXPECT_CALL(mock_window_, UpdateDirectory(_))
       .Times(Exactly(1))
       .WillOnce(Return(true));
-  mock_directory_files_view->SimulateDirectoryClick("cat.txt");
+  mock_directory_files_view_.SimulateDirectoryClick("cat.txt");
 }
 
 }  // namespace
