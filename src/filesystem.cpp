@@ -4,6 +4,8 @@
 #include <absl/status/statusor.h>
 #include <absl/strings/str_split.h>
 #include <absl/types/span.h>
+#include <dirent.h>
+#include <errno.h>
 #include <glibmm/stringutils.h>
 #include <glibmm/ustring.h>
 
@@ -101,4 +103,25 @@ absl::StatusOr<std::vector<std::string>> MockFileSystem::GetDirectoryFiles(
 
   return GetFileNamesFromLastMatchingDirectory(root_.GetFiles(),
                                                nested_directory_names);
+}
+
+// To test methods in POSIXFileSystem, make a test double that mocks POSIX APIs
+// such as this:
+// class MockPOSIXAPI : public POSIXAPIInterface {
+//     DIR *opendir(const char *str) {}
+//     dirrent *readdir(DIR *dir) { return dir->next_dir; }
+// };
+// Then pass that to POSIXFileSystem as a dependency for POSIXAPIInterface and
+// use MockPOSIXAPI to ensure POSIXFileSystem::GetDirectoryFiles() returns the
+// correct files.
+absl::StatusOr<std::vector<std::string>> POSIXFileSystem::GetDirectoryFiles(
+    Glib::UStringView directory) const {
+  DIR *dir = opendir(directory.c_str());
+  if (dir == nullptr) return absl::NotFoundError("Error opening file");
+
+  std::vector<std::string> file_names;
+  for (dirent *file = readdir(dir); file != nullptr; file = readdir(dir))
+    if (file->d_type == DT_REG) file_names.push_back(file->d_name);
+
+  return file_names;
 }

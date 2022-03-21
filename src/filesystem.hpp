@@ -77,4 +77,13 @@ class MockFileSystem : public FileSystem {
   MockDirectory root_;
 };
 
+// Interface for extracting files using POSIX APIs.
+class POSIXFileSystem : public FileSystem {
+ public:
+  POSIXFileSystem();
+
+  absl::StatusOr<std::vector<std::string>> GetDirectoryFiles(
+      Glib::UStringView directory) const override;
+};
+
 #endif
