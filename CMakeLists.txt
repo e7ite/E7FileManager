@@ -18,7 +18,7 @@ list(APPEND ALL_CXX_SOURCE_FILES ${ALL_CXX_FILES})
 list(REMOVE_ITEM ALL_CXX_SOURCE_FILES ${ALL_CXX_TEST_FILES})
 
 add_executable(e7fmgr ${ALL_CXX_SOURCE_FILES})
-target_link_libraries(e7fmgr PUBLIC PkgConfig::GTKMM3 absl::status)
+target_link_libraries(e7fmgr PUBLIC PkgConfig::GTKMM3 absl::status absl::statusor absl::strings)
 
 file(GLOB CLANG_FORMAT NAME "/usr/bin/clang-format-[0-9]*")
 if(CLANG_FORMAT)
@@ -55,14 +55,23 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 add_compile_options(-g)
 add_executable(gui_test 
+  ${PROJECT_SOURCE_DIR}/src/filesystem.hpp
   ${PROJECT_SOURCE_DIR}/src/gui.hpp
   ${PROJECT_SOURCE_DIR}/src/gui.cpp
   ${PROJECT_SOURCE_DIR}/src/gui_test.cpp
 )
-target_link_libraries(gui_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status absl::statusor)
+target_link_libraries(gui_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status absl::statusor absl::strings)
+
+add_executable(filesystem_test 
+  ${PROJECT_SOURCE_DIR}/src/filesystem.hpp
+  ${PROJECT_SOURCE_DIR}/src/filesystem.cpp
+  ${PROJECT_SOURCE_DIR}/src/filesystem_test.cpp
+)
+target_link_libraries(filesystem_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status absl::statusor absl::strings)
 
 include(GoogleTest)
 gtest_discover_tests(gui_test)
+gtest_discover_tests(filesystem_test)
 
 set(ABSL_PROPAGATE_CXX_STD ON)
 add_subdirectory(abseil-cpp)
