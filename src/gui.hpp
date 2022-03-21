@@ -152,8 +152,6 @@ class UIWindow : public Gtk::Window, public Window {
   virtual ~UIWindow() {}
 
  private:
-  UIWindow(NavBar &nav_bar);
-
   Gtk::Grid window_widgets_;
 };
 
