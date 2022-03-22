@@ -2,14 +2,12 @@
 #define GUI_HPP
 
 #include <dirent.h>
-#include <glibmm/stringutils.h>
 #include <glibmm/ustring.h>
 #include <gtkmm/grid.h>
 #include <gtkmm/window.h>
 
 #include <functional>
 #include <memory>
-#include <string_view>
 
 // A base interface for creating derived instances of the navigation bar,
 // containing a back, forward, and up button. Can be derived to provide
@@ -48,7 +46,7 @@ class CurrentDirectoryBar {
   // This sets the internal text displayed for the current directory text box
   // (located below the file search box), to the argument. Returns false if the
   // directory does not exist, true otherwise.
-  virtual bool SetDisplayedDirectory(Glib::UStringView new_directory);
+  virtual bool SetDisplayedDirectory(const Glib::ustring &new_directory);
 
   // This can be used to register an action to take when there is a request to
   // update the directory, specifically from the directory bar. This can be
@@ -116,17 +114,17 @@ class Window {
   // the argument. Returns false if the directory entered is not found.
   //
   // Only full paths are accepted through new_directory. Relative paths are not.
-  virtual bool UpdateDirectory(Glib::UStringView new_directory);
+  virtual bool UpdateDirectory(const Glib::ustring &new_directory);
 
   // Will search for the file passed in, relative to the current directory.
   //
   // Returns nullptr if the file name does not exist.
-  virtual dirent *SearchForFile(Glib::UStringView file_name);
+  virtual dirent *SearchForFile(const Glib::ustring &file_name);
 
   // Shows window containing details of a file and a preview of it if possible.
   //
   // Does nothing if file does not exist.
-  virtual void ShowFileDetails(Glib::UStringView file_name);
+  virtual void ShowFileDetails(const Glib::ustring &file_name);
 
   // Can be used to extract non-owning handles to GUI internal widgets.
   NavBar &GetNavBar();

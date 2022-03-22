@@ -7,7 +7,6 @@
 #include <absl/strings/str_split.h>
 #include <absl/types/any.h>
 #include <absl/utility/utility.h>
-#include <glibmm/stringutils.h>
 #include <glibmm/ustring.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

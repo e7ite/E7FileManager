@@ -68,12 +68,12 @@ FileSystem::~FileSystem() {}
 MockFileSystem::MockFileSystem(std::initializer_list<MockFile *> files)
     : root_("/", files) {}
 
-MockFile::MockFile(Glib::UStringView name) : name_(name.c_str()) {}
+MockFile::MockFile(const Glib::ustring &name) : name_(name) {}
 MockFile::~MockFile() {}
 
 std::string MockFile::GetName() const { return name_; }
 
-MockDirectory::MockDirectory(Glib::UStringView name,
+MockDirectory::MockDirectory(const Glib::ustring &name,
                              std::initializer_list<MockFile *> files)
     : MockFile(name), files_(files) {}
 MockDirectory::~MockDirectory() {}
@@ -83,11 +83,10 @@ absl::Span<const MockFile *const> MockDirectory::GetFiles() const {
 }
 
 absl::StatusOr<std::vector<std::string>> MockFileSystem::GetDirectoryFiles(
-    Glib::UStringView directory) const {
+    const Glib::ustring &directory) const {
   std::vector<std::string> file_names;
-  if (Glib::ustring("/") == directory.c_str())
-    return GetFileNamesFromMockDirectory(root_.GetFiles());
-  if (Glib::ustring("") == directory.c_str())
+  if (directory == "/") return GetFileNamesFromMockDirectory(root_.GetFiles());
+  if (directory.empty())
     return absl::InvalidArgumentError("Directory cannot be empty!");
 
   // Since first character should be a /, the first string should be empty
@@ -114,7 +113,7 @@ absl::StatusOr<std::vector<std::string>> MockFileSystem::GetDirectoryFiles(
 // use MockPOSIXAPI to ensure POSIXFileSystem::GetDirectoryFiles() returns the
 // correct files.
 absl::StatusOr<std::vector<std::string>> POSIXFileSystem::GetDirectoryFiles(
-    Glib::UStringView directory) const {
+    const Glib::ustring &directory) const {
   DIR *dir = opendir(directory.c_str());
   if (dir == nullptr) return absl::NotFoundError("Error opening file");
 

@@ -3,7 +3,6 @@
 
 #include <absl/status/status.h>
 #include <absl/status/statusor.h>
-#include <glibmm/stringutils.h>
 #include <glibmm/ustring.h>
 
 #include <string>
@@ -21,12 +20,12 @@ class FileSystem {
   // absl::NotFoundError if the directory does not exist. Else will contain a
   // an array of file names that existed in the specified directory.
   virtual absl::StatusOr<std::vector<std::string>> GetDirectoryFiles(
-      Glib::UStringView directory) const = 0;
+      const Glib::ustring &directory) const = 0;
 };
 
 class MockFile {
  public:
-  MockFile(Glib::UStringView name);
+  MockFile(const Glib::ustring &name);
   virtual ~MockFile();
 
   std::string GetName() const;
@@ -37,7 +36,7 @@ class MockFile {
 
 class MockDirectory : public MockFile {
  public:
-  MockDirectory(Glib::UStringView name,
+  MockDirectory(const Glib::ustring &name,
                 std::initializer_list<MockFile *> files);
   virtual ~MockDirectory();
 
@@ -69,7 +68,7 @@ class MockFileSystem : public FileSystem {
   MockFileSystem(std::initializer_list<MockFile *> files);
 
   absl::StatusOr<std::vector<std::string>> GetDirectoryFiles(
-      Glib::UStringView directory) const override;
+      const Glib::ustring &directory) const override;
 
   const MockDirectory &GetRoot() const { return root_; }
 
@@ -83,7 +82,7 @@ class POSIXFileSystem : public FileSystem {
   POSIXFileSystem();
 
   absl::StatusOr<std::vector<std::string>> GetDirectoryFiles(
-      Glib::UStringView directory) const override;
+      const Glib::ustring &directory) const override;
 };
 
 #endif

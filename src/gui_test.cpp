@@ -7,7 +7,6 @@
 #include <absl/types/any.h>
 #include <absl/utility/utility.h>
 #include <dirent.h>
-#include <glibmm/stringutils.h>
 #include <glibmm/ustring.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -16,7 +15,6 @@
 #include <array>
 #include <initializer_list>
 #include <memory>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -191,7 +189,7 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
   MockCurrentDirectoryBar& operator=(const MockCurrentDirectoryBar&) = delete;
   MockCurrentDirectoryBar& operator=(MockCurrentDirectoryBar&&) = delete;
 
-  MOCK_METHOD(bool, SetDisplayedDirectory, (Glib::UStringView new_directory),
+  MOCK_METHOD(bool, SetDisplayedDirectory, (const Glib::ustring& new_directory),
               (override));
 
   void OnDirectoryChange(
@@ -199,8 +197,8 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
     directory_changed_callback_ = callback;
   }
 
-  void SimulateDirectoryChange(std::string_view file_name) {
-    directory_changed_callback_(Glib::ustring(file_name.data()), nullptr);
+  void SimulateDirectoryChange(const Glib::ustring& directory_name) {
+    directory_changed_callback_(directory_name, nullptr);
   }
 
   void OnFileToSearchEntered(
@@ -208,8 +206,8 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
     file_typed_callback_ = callback;
   }
 
-  void SimulateFileToSearchEntered(std::string_view file_name) {
-    file_typed_callback_(Glib::ustring(file_name.data()), nullptr);
+  void SimulateFileToSearchEntered(const Glib::ustring& file_name) {
+    file_typed_callback_(file_name, nullptr);
   }
 
  private:
@@ -268,15 +266,16 @@ class MockWindow : public Window {
   MOCK_METHOD(void, GoForwardDirectory, (), (override));
   MOCK_METHOD(void, GoUpDirectory, (), (override));
 
-  MOCK_METHOD(dirent*, SearchForFile, (Glib::UStringView file_name),
+  MOCK_METHOD(dirent*, SearchForFile, (const Glib::ustring& file_name),
               (override));
 
-  MOCK_METHOD(bool, UpdateDirectory, (Glib::UStringView new_directory),
+  MOCK_METHOD(bool, UpdateDirectory, (const Glib::ustring& new_directory),
               (override));
 
-  MOCK_METHOD(void, ShowFileDetails, (Glib::UStringView file_name), (override));
+  MOCK_METHOD(void, ShowFileDetails, (const Glib::ustring& file_name),
+              (override));
 
-  void SimulateDirectoryChange(Glib::UStringView new_directory) {
+  void SimulateDirectoryChange(const Glib::ustring& new_directory) {
     GetDirectoryBar().SetDisplayedDirectory(new_directory);
   }
 };
@@ -312,21 +311,20 @@ TEST_F(WindowTest, EnsureUpButtonRequestReceived) {
 }
 
 TEST_F(WindowTest, EnsureFileIsSearchedFor) {
-  // Expect anything file name for now, since there is no
-  // operator==(Glib::UStringView, Glib::UStringView). Fix later.
-  EXPECT_CALL(mock_window_, SearchForFile(_))
+  EXPECT_CALL(mock_window_, SearchForFile(Glib::ustring("hello.txt")))
       .Times(Exactly(1))
       .WillOnce(ReturnNull());
-  mock_current_directory_bar_.SimulateFileToSearchEntered("hello.txt");
+  // Don't lint this because clang-tidy claims there will be a memory leak here,
+  // but we don't care since this is tests.
+  mock_current_directory_bar_.SimulateFileToSearchEntered(
+      "hello.txt");  // NOLINT
 }
 
 TEST_F(WindowTest, EnsureDirectoryChangeRequestReceived) {
-  // Expect anything directory name for now, since there is no
-  // operator==(Glib::UStringView, Glib::UStringView). Fix later.
-  EXPECT_CALL(mock_window_, UpdateDirectory(_))
+  EXPECT_CALL(mock_window_, UpdateDirectory(Glib::ustring("hello.txt")))
       .Times(Exactly(1))
       .WillOnce(Return(true));
-  mock_current_directory_bar_.SimulateDirectoryChange("hello.txt");
+  mock_current_directory_bar_.SimulateDirectoryChange("hello.txt");  // NOLINT
 }
 
 TEST_F(WindowTest, EnsureDirectoryWidgetReceivesUpdatedDirectory) {

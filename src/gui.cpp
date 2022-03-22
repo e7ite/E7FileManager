@@ -1,7 +1,6 @@
 #include "gui.hpp"
 
 #include <dirent.h>
-#include <glibmm/stringutils.h>
 #include <glibmm/ustring.h>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
@@ -162,13 +161,11 @@ Window::Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar,
 
   current_directory_bar_->OnFileToSearchEntered(
       [this](const Glib::ustring &file_name, [[maybe_unused]] int *) {
-        Glib::UStringView file_name_view = file_name;
-        this->SearchForFile(file_name_view);
+        this->SearchForFile(file_name);
       });
   current_directory_bar_->OnDirectoryChange(
       [this](const Glib::ustring &directory_name, [[maybe_unused]] int *) {
-        Glib::UStringView directory_name_view = directory_name;
-        this->UpdateDirectory(directory_name_view);
+        this->UpdateDirectory(directory_name);
       });
 
   directory_view_->OnFileClick([this](const Glib::ustring &file_name) {
@@ -186,11 +183,15 @@ void Window::GoBackDirectory() {}
 void Window::GoUpDirectory() {}
 void Window::GoForwardDirectory() {}
 
-dirent *Window::SearchForFile(Glib::UStringView file_name) { return nullptr; }
+dirent *Window::SearchForFile(const Glib::ustring &file_name) {
+  return nullptr;
+}
 
-bool Window::UpdateDirectory(Glib::UStringView new_directory) { return true; }
+bool Window::UpdateDirectory(const Glib::ustring &new_directory) {
+  return true;
+}
 
-void Window::ShowFileDetails(Glib::UStringView file_name) {}
+void Window::ShowFileDetails(const Glib::ustring &file_name) {}
 
 NavBar &Window::GetNavBar() { return *navigate_buttons_.get(); }
 CurrentDirectoryBar &Window::GetDirectoryBar() {
@@ -201,7 +202,7 @@ DirectoryFilesView &Window::GetDirectoryFilesView() {
 }
 
 bool CurrentDirectoryBar::SetDisplayedDirectory(
-    Glib::UStringView new_directory) {
+    const Glib::ustring &new_directory) {
   return true;
 }
 
