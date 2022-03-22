@@ -87,14 +87,13 @@ absl::StatusOr<std::vector<std::string>> MockFileSystem::GetDirectoryFiles(
   std::vector<std::string> file_names;
   if (Glib::ustring("/") == directory.c_str())
     return GetFileNamesFromMockDirectory(root_.GetFiles());
-
-  std::vector<std::string> nested_directory_names =
-      absl::StrSplit(directory.c_str(), "/");
-  if (nested_directory_names.empty())
+  if (Glib::ustring("") == directory.c_str())
     return absl::InvalidArgumentError("Directory cannot be empty!");
 
   // Since first character should be a /, the first string should be empty
   // after splitting it. Remove it from the list, since it is not needed.
+  std::vector<std::string> nested_directory_names =
+      absl::StrSplit(directory.c_str(), "/");
   std::string first_directory_name = *nested_directory_names.begin();
   nested_directory_names.erase(nested_directory_names.begin());
   if (first_directory_name.size() != 0)

@@ -185,13 +185,21 @@ TEST(MockFileSystemTest, DynamicCastToMockDirectoryFail) {
       IsNull());
 }
 
-TEST(MockFileSystemTest, ErrorOnRelativePath) {
+TEST(MockFileSystemTest, ErrorOnEmptyPath) {
   MockFileSystem mock_fs(
       {new MockFile("file.txt"),
        new MockDirectory("dir", {new MockFile("meow.txt")})});
 
   // Negate result, since we can't explicitly check for exact statuses with
   // absl::Status right now.
+  EXPECT_THAT(mock_fs.GetDirectoryFiles(""), Not(IsOk()));
+}
+
+TEST(MockFileSystemTest, ErrorOnRelativePath) {
+  MockFileSystem mock_fs(
+      {new MockFile("file.txt"),
+       new MockDirectory("dir", {new MockFile("meow.txt")})});
+
   EXPECT_THAT(mock_fs.GetDirectoryFiles("dir/"), Not(IsOk()));
 }
 
