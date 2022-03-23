@@ -1,5 +1,7 @@
 #include "gui.hpp"
 
+#include <absl/strings/str_split.h>
+#include <absl/strings/string_view.h>
 #include <dirent.h>
 #include <glibmm/ustring.h>
 #include <gtkmm/box.h>
@@ -11,6 +13,7 @@
 
 #include <functional>
 #include <memory>
+#include <stack>
 
 namespace {
 
@@ -140,6 +143,15 @@ class UIDirectoryFilesView : public DirectoryFilesView {
   Gtk::Box file_entry_widgets_;
 };
 
+Glib::ustring RemoveLastDirectoryFromPath(const Glib::ustring &full_path,
+                                          const Glib::ustring &last_path) {
+  std::string path_to_clean = full_path;
+  std::string suffix_to_remove = last_path + "/";
+  absl::string_view cleaned_dir =
+      absl::StripSuffix(path_to_clean, suffix_to_remove);
+  return Glib::ustring(cleaned_dir.data(), cleaned_dir.size());
+}
+
 }  // namespace
 
 NavBar::NavBar() {}
@@ -180,9 +192,46 @@ Window::Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar,
 
 Window::~Window() {}
 
-void Window::GoBackDirectory() {}
-void Window::GoUpDirectory() {}
-void Window::GoForwardDirectory() {}
+void Window::GoBackDirectory() {
+  if (back_directory_history_.empty()) return;
+
+  forward_directory_history_.push(current_directory_);
+
+  current_directory_ = back_directory_history_.top();
+  back_directory_history_.pop();
+}
+
+void Window::GoUpDirectory() {
+  if (current_directory_ == "/") {
+    return;
+  }
+
+  std::vector<std::string> split_directories =
+      absl::StrSplit(current_directory_.c_str(), "/");
+  // We know we have at least one directory (besides root) if we have more than
+  // three splits (two forward slashes).
+  if (split_directories.size() < 3) {
+    return;
+  }
+
+  back_directory_history_.push(current_directory_);
+
+  // Second to last string in split directories should be directory to remove.
+  current_directory_ = RemoveLastDirectoryFromPath(
+      current_directory_, *(split_directories.rbegin() + 1));
+
+  // Any directory change not using history should clear forward history.
+  forward_directory_history_ = std::stack<Glib::ustring>();
+}
+
+void Window::GoForwardDirectory() {
+  if (forward_directory_history_.empty()) return;
+
+  back_directory_history_.push(current_directory_);
+
+  current_directory_ = forward_directory_history_.top();
+  forward_directory_history_.pop();
+}
 
 dirent *Window::SearchForFile(const Glib::ustring &file_name) {
   return nullptr;
@@ -196,9 +245,16 @@ bool Window::UpdateDirectory(const Glib::ustring &new_directory) {
       gunichar('/'))
     cleaned_new_directory += '/';
 
+  // Don't update directory if we are already here. Keeps some logic simplified.
+  if (current_directory_ == cleaned_new_directory) return false;
+
+  back_directory_history_.push(current_directory_);
+  forward_directory_history_ = std::stack<Glib::ustring>();
+
   current_directory_ = cleaned_new_directory;
 
   current_directory_bar_->SetDisplayedDirectory(new_directory);
+
   return true;
 }
 

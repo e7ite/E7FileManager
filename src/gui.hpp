@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <memory>
+#include <stack>
 
 #include "filesystem.hpp"
 
@@ -143,6 +144,10 @@ class Window {
   // Provides the file system the file manager can create and view files from.
   std::unique_ptr<FileSystem> file_system_;
 
+  // Needed for handling going back and forth using the navigation bar.
+  std::stack<Glib::ustring> back_directory_history_;
+  std::stack<Glib::ustring> forward_directory_history_;
+
   Glib::ustring current_directory_ = "/";
 };
 
@@ -163,3 +168,16 @@ class UIWindow : public Gtk::Window, public Window {
 };
 
 #endif  // GUI_HPP
+
+/*
+
+  1. /                               stack:
+  2. /dir                            stack: /
+  3. /dir/tmp                        stack: /, /dir
+  <-  pop /dir and push /dir/tmp IN THIS ORDER
+  4. /dir                            stack: /, /dir/tmp
+  ->  pop /dir/tmp and push /dir/ IN THIS ORDER
+  5. /dir/tmp                        stack: /, /dir
+
+
+*/
