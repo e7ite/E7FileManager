@@ -56,6 +56,7 @@ enable_testing()
 add_compile_options(-g)
 add_executable(gui_test 
   ${PROJECT_SOURCE_DIR}/src/filesystem.hpp
+  ${PROJECT_SOURCE_DIR}/src/filesystem.cpp
   ${PROJECT_SOURCE_DIR}/src/gui.hpp
   ${PROJECT_SOURCE_DIR}/src/gui.cpp
   ${PROJECT_SOURCE_DIR}/src/gui_test.cpp
