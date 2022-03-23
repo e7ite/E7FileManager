@@ -67,6 +67,8 @@ class MockFileSystem : public FileSystem {
  public:
   MockFileSystem(std::initializer_list<MockFile *> files);
 
+  virtual ~MockFileSystem() = default;
+
   absl::StatusOr<std::vector<std::string>> GetDirectoryFiles(
       const Glib::ustring &directory) const override;
 
@@ -79,7 +81,7 @@ class MockFileSystem : public FileSystem {
 // Interface for extracting files using POSIX APIs.
 class POSIXFileSystem : public FileSystem {
  public:
-  POSIXFileSystem();
+  virtual ~POSIXFileSystem() = default;
 
   absl::StatusOr<std::vector<std::string>> GetDirectoryFiles(
       const Glib::ustring &directory) const override;

@@ -9,6 +9,8 @@
 #include <functional>
 #include <memory>
 
+#include "filesystem.hpp"
+
 // A base interface for creating derived instances of the navigation bar,
 // containing a back, forward, and up button. Can be derived to provide
 // different methods to signal when the buttons are pressed.
@@ -94,7 +96,7 @@ class Window {
  public:
   // Dependancy injection method that will take ownership of passed in objects.
   Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar,
-         DirectoryFilesView &directory_window);
+         DirectoryFilesView &directory_window, FileSystem &file_system);
 
   Window(const Window &) = delete;
   Window(Window &&) = delete;
@@ -131,10 +133,17 @@ class Window {
   CurrentDirectoryBar &GetDirectoryBar();
   DirectoryFilesView &GetDirectoryFilesView();
 
+  Glib::UStringView GetCurrentDirectory();
+
  private:
   std::unique_ptr<NavBar> navigate_buttons_;
   std::unique_ptr<CurrentDirectoryBar> current_directory_bar_;
   std::unique_ptr<DirectoryFilesView> directory_view_;
+
+  // Provides the file system the file manager can create and view files from.
+  std::unique_ptr<FileSystem> file_system_;
+
+  Glib::ustring current_directory_ = "/";
 };
 
 // Represents the whole GUI structure including the file manager's internal

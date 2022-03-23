@@ -18,9 +18,12 @@
 #include <type_traits>
 #include <utility>
 
+#include "filesystem.hpp"
+
 using ::testing::_;
 using ::testing::Exactly;
 using ::testing::InitGoogleTest;
+using ::testing::Invoke;
 using ::testing::IsEmpty;
 using ::testing::Return;
 using ::testing::ReturnNull;
@@ -253,8 +256,9 @@ class MockDirectoryFilesView : public DirectoryFilesView {
 class MockWindow : public Window {
  public:
   MockWindow(NavBar& nav_bar, CurrentDirectoryBar& current_directory_bar,
-             DirectoryFilesView& directory_files_view)
-      : Window(nav_bar, current_directory_bar, directory_files_view) {}
+             DirectoryFilesView& directory_files_view, FileSystem& file_system)
+      : Window(nav_bar, current_directory_bar, directory_files_view,
+               file_system) {}
   virtual ~MockWindow() {}
 
   MockWindow(const MockWindow&) = delete;
@@ -275,6 +279,12 @@ class MockWindow : public Window {
   MOCK_METHOD(void, ShowFileDetails, (const Glib::ustring& file_name),
               (override));
 
+  // Needed to ensure mock method actually calls base class method, since
+  // MOCK_METHOD will override and not actually call the base method.
+  bool CallUpdateDirectory(const Glib::ustring& new_directory) {
+    return Window::UpdateDirectory(new_directory);
+  }
+
   void SimulateDirectoryChange(const Glib::ustring& new_directory) {
     GetDirectoryBar().SetDisplayedDirectory(new_directory);
   }
@@ -286,14 +296,65 @@ class WindowTest : public ::testing::Test {
       : mock_nav_bar_(*new MockNavBar()),
         mock_current_directory_bar_(*new MockCurrentDirectoryBar()),
         mock_directory_files_view_(*new MockDirectoryFilesView()),
+        mock_file_system_(*new MockFileSystem(
+            {new MockFile("meow.txt"),
+             new MockDirectory(
+                 "dir",
+                 {new MockDirectory(
+                     "nesteddir", {new MockFile("lmao.txt"),
+                                   new MockFile("nameabettertest.cpp"),
+                                   new MockFile("whyyoualwayslying.lol")})})})),
         mock_window_(mock_nav_bar_, mock_current_directory_bar_,
-                     mock_directory_files_view_) {}
+                     mock_directory_files_view_, mock_file_system_) {}
 
   MockNavBar& mock_nav_bar_;
   MockCurrentDirectoryBar& mock_current_directory_bar_;
   MockDirectoryFilesView& mock_directory_files_view_;
+  MockFileSystem& mock_file_system_;
   MockWindow mock_window_;
 };
+
+TEST_F(WindowTest, EnsureStartsAtRoot) {
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+}
+
+TEST_F(WindowTest, NavigateToDirectory) {
+  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir"));
+
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+}
+
+TEST_F(WindowTest, NavigateToNestedDirectory) {
+  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir/nesteddir"));
+
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
+}
+
+TEST_F(WindowTest, NavigateToNestedDirectoryExtraSlash) {
+  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir/nesteddir/"));
+
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
+}
+
+TEST_F(WindowTest, DontAcceptEmptyDir) {
+  ASSERT_FALSE(mock_window_.Window::UpdateDirectory(""));
+
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+}
+
+TEST_F(WindowTest, NavigateBetweenAllDirs) {
+  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir"));
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+
+  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir/nesteddir"));
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
+
+  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir"));
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+
+  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/"));
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+}
 
 TEST_F(WindowTest, EnsureBackButtonRequestReceived) {
   EXPECT_CALL(mock_window_, GoBackDirectory()).Times(Exactly(1));
@@ -320,18 +381,27 @@ TEST_F(WindowTest, EnsureFileIsSearchedFor) {
       "hello.txt");  // NOLINT
 }
 
-TEST_F(WindowTest, EnsureDirectoryChangeRequestReceived) {
-  EXPECT_CALL(mock_window_, UpdateDirectory(Glib::ustring("hello.txt")))
+TEST_F(WindowTest, EnsureWindowDirectoryUpdatesUponDirectoryBarChange) {
+  EXPECT_CALL(mock_window_, UpdateDirectory(Glib::ustring("/dir/")))
+      .Times(Exactly(1))
+      .WillOnce(Invoke(&mock_window_, &MockWindow::CallUpdateDirectory))
+      .WillOnce(Return(true));
+  EXPECT_CALL(mock_current_directory_bar_,
+              SetDisplayedDirectory(Glib::ustring("/dir/")))  // NOLINT
       .Times(Exactly(1))
       .WillOnce(Return(true));
-  mock_current_directory_bar_.SimulateDirectoryChange("hello.txt");  // NOLINT
+
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir/");  // NOLINT
+
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 }
 
-TEST_F(WindowTest, EnsureDirectoryWidgetReceivesUpdatedDirectory) {
-  EXPECT_CALL(mock_current_directory_bar_, SetDisplayedDirectory(_))
+TEST_F(WindowTest, EnsureDirectoryWidgetUpdatesUponRequestFromWindow) {
+  EXPECT_CALL(mock_current_directory_bar_,
+              SetDisplayedDirectory(Glib::ustring("/dir/")))
       .Times(Exactly(1))
       .WillOnce(Return(true));
-  mock_window_.SimulateDirectoryChange("/tmp/directory/");
+  mock_window_.SimulateDirectoryChange("/dir/");  // NOLINT
 }
 
 TEST_F(WindowTest, EnsureFileClickReceivedOnFileSelection) {

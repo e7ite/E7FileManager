@@ -150,10 +150,11 @@ DirectoryFilesView::DirectoryFilesView() {}
 DirectoryFilesView::~DirectoryFilesView() {}
 
 Window::Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar,
-               DirectoryFilesView &directory_view)
+               DirectoryFilesView &directory_view, FileSystem &file_system)
     : navigate_buttons_(&nav_bar),
       current_directory_bar_(&directory_bar),
-      directory_view_(&directory_view) {
+      directory_view_(&directory_view),
+      file_system_(&file_system) {
   navigate_buttons_->OnBackButtonPress([this]() { this->GoBackDirectory(); });
   navigate_buttons_->OnUpButtonPress([this]() { this->GoUpDirectory(); });
   navigate_buttons_->OnForwardButtonPress(
@@ -188,6 +189,16 @@ dirent *Window::SearchForFile(const Glib::ustring &file_name) {
 }
 
 bool Window::UpdateDirectory(const Glib::ustring &new_directory) {
+  if (!file_system_->GetDirectoryFiles(new_directory).ok()) return false;
+
+  Glib::ustring cleaned_new_directory = new_directory;
+  if (cleaned_new_directory.at(cleaned_new_directory.length() - 1) !=
+      gunichar('/'))
+    cleaned_new_directory += '/';
+
+  current_directory_ = cleaned_new_directory;
+
+  current_directory_bar_->SetDisplayedDirectory(new_directory);
   return true;
 }
 
@@ -200,6 +211,7 @@ CurrentDirectoryBar &Window::GetDirectoryBar() {
 DirectoryFilesView &Window::GetDirectoryFilesView() {
   return *directory_view_.get();
 }
+Glib::UStringView Window::GetCurrentDirectory() { return current_directory_; }
 
 bool CurrentDirectoryBar::SetDisplayedDirectory(
     const Glib::ustring &new_directory) {
@@ -208,7 +220,7 @@ bool CurrentDirectoryBar::SetDisplayedDirectory(
 
 UIWindow::UIWindow()
     : ::Window(*new UINavBar(), *new UICurrentDirectoryBar(),
-               *new UIDirectoryFilesView()) {
+               *new UIDirectoryFilesView(), *new POSIXFileSystem()) {
   add(window_widgets_);
 
   set_default_size(600, 600);
