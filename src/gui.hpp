@@ -133,8 +133,9 @@ class Window {
   NavBar &GetNavBar();
   CurrentDirectoryBar &GetDirectoryBar();
   DirectoryFilesView &GetDirectoryFilesView();
+  FileSystem &GetFileSystem();
 
-  Glib::UStringView GetCurrentDirectory();
+  Glib::ustring GetCurrentDirectory();
 
  private:
   std::unique_ptr<NavBar> navigate_buttons_;
@@ -168,16 +169,3 @@ class UIWindow : public Gtk::Window, public Window {
 };
 
 #endif  // GUI_HPP
-
-/*
-
-  1. /                               stack:
-  2. /dir                            stack: /
-  3. /dir/tmp                        stack: /, /dir
-  <-  pop /dir and push /dir/tmp IN THIS ORDER
-  4. /dir                            stack: /, /dir/tmp
-  ->  pop /dir/tmp and push /dir/ IN THIS ORDER
-  5. /dir/tmp                        stack: /, /dir
-
-
-*/

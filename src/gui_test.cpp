@@ -519,13 +519,13 @@ TEST_F(WindowTest, ChangeDirFromDirectoryBarShouldClearHistory) {
   EXPECT_CALL(mock_window_, GoForwardDirectory())
       .Times(Exactly(1))
       .WillOnce(InvokeWithoutArgs(&mock_window_,
-                                        &MockWindow::CallGoForwardDirectory));
+                                  &MockWindow::CallGoForwardDirectory));
   EXPECT_CALL(mock_window_, UpdateDirectory(Glib::ustring("/dir/nesteddir")))
       .Times(Exactly(1))
       .WillOnce(Invoke(&mock_window_, &MockWindow::CallUpdateDirectory));
 
-  mock_window_.Window::UpdateDirectory("/dir");
-  mock_window_.Window::UpdateDirectory("/dir/nesteddir");
+  mock_window_.Window::UpdateDirectory("/dir");            // NOLINT
+  mock_window_.Window::UpdateDirectory("/dir/nesteddir");  // NOLINT
 
   mock_nav_bar_.SimulateBackButtonPress();
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");

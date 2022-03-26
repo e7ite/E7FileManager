@@ -267,7 +267,8 @@ CurrentDirectoryBar &Window::GetDirectoryBar() {
 DirectoryFilesView &Window::GetDirectoryFilesView() {
   return *directory_view_.get();
 }
-Glib::UStringView Window::GetCurrentDirectory() { return current_directory_; }
+FileSystem &Window::GetFileSystem() { return *file_system_.get(); }
+Glib::ustring Window::GetCurrentDirectory() { return current_directory_; }
 
 bool CurrentDirectoryBar::SetDisplayedDirectory(
     const Glib::ustring &new_directory) {
