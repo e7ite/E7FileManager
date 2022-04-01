@@ -91,6 +91,10 @@ class UICurrentDirectoryBar : public CurrentDirectoryBar {
     file_search_entry_box_.signal_insert_text().connect(callback);
   }
 
+  void SetDisplayedDirectory(const Glib::ustring &new_directory) override {
+    current_directory_entry_box_.set_text(new_directory);
+  }
+
   Gtk::Box &GetBorder() { return entry_box_border_; }
 
  private:

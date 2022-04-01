@@ -47,9 +47,9 @@ class CurrentDirectoryBar {
   virtual ~CurrentDirectoryBar();
 
   // This sets the internal text displayed for the current directory text box
-  // (located below the file search box), to the argument. Returns false if the
-  // directory does not exist, true otherwise.
-  virtual bool SetDisplayedDirectory(const Glib::ustring &new_directory);
+  // (located below the file search box), to the argument. Expects the directory
+  // entered to be valid.
+  virtual void SetDisplayedDirectory(const Glib::ustring &new_directory) = 0;
 
   // This can be used to register an action to take when there is a request to
   // update the directory, specifically from the directory bar. This can be
