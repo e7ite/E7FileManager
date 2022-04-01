@@ -119,7 +119,8 @@ absl::StatusOr<std::vector<std::string>> POSIXFileSystem::GetDirectoryFiles(
 
   std::vector<std::string> file_names;
   for (dirent *file = readdir(dir); file != nullptr; file = readdir(dir))
-    if (file->d_type == DT_REG) file_names.push_back(file->d_name);
+    if (file->d_type == DT_REG || file->d_type == DT_DIR)
+      file_names.push_back(file->d_name);
 
   return file_names;
 }
