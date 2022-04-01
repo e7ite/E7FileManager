@@ -30,6 +30,13 @@ using ::testing::IsEmpty;
 using ::testing::Return;
 using ::testing::ReturnNull;
 
+namespace Glib {
+void PrintTo(const Glib::ustring& gtkmm_string, std::ostream* os) {
+  *os << (gtkmm_string.is_ascii() ? "ASCII: " : "Not ASCII: ")
+      << static_cast<std::string>(gtkmm_string);
+}
+}  // namespace Glib
+
 namespace {
 
 inline const ::absl::Status& GetStatus(const ::absl::Status& status) {
