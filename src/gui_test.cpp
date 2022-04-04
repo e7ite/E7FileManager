@@ -332,44 +332,6 @@ TEST_F(WindowTest, EnsureStartsAtRoot) {
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
 }
 
-TEST_F(WindowTest, NavigateToDirectory) {
-  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir"));
-
-  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
-}
-
-TEST_F(WindowTest, NavigateToNestedDirectory) {
-  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir/nesteddir"));
-
-  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
-}
-
-TEST_F(WindowTest, NavigateToNestedDirectoryExtraSlash) {
-  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir/nesteddir/"));
-
-  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
-}
-
-TEST_F(WindowTest, DontAcceptEmptyDir) {
-  ASSERT_FALSE(mock_window_.Window::UpdateDirectory(""));
-
-  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
-}
-
-TEST_F(WindowTest, NavigateBetweenAllDirs) {
-  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir"));
-  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
-
-  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir/nesteddir"));
-  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
-
-  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/dir"));
-  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
-
-  ASSERT_TRUE(mock_window_.Window::UpdateDirectory("/"));
-  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
-}
-
 TEST_F(WindowTest, EnsureBackButtonRequestGoesBackDirectory) {
   EXPECT_CALL(mock_window_, GoBackDirectory()).Times(Exactly(1));
   mock_nav_bar_.SimulateBackButtonPress();
