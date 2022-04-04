@@ -201,7 +201,7 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
   MockCurrentDirectoryBar& operator=(const MockCurrentDirectoryBar&) = delete;
   MockCurrentDirectoryBar& operator=(MockCurrentDirectoryBar&&) = delete;
 
-  MOCK_METHOD(bool, SetDisplayedDirectory, (const Glib::ustring& new_directory),
+  MOCK_METHOD(void, SetDisplayedDirectory, (const Glib::ustring& new_directory),
               (override));
 
   void OnDirectoryChange(
@@ -654,23 +654,16 @@ TEST_F(WindowTest, EnsureWindowDirectoryUpdatesUponDirectoryBarChange) {
 }
 
 TEST_F(WindowTest, EnsureDirectoryWidgetUpdatesUponRequestFromWindow) {
+  EXPECT_CALL(mock_window_,
+              HandleFullDirectoryChange(Glib::ustring("/dir")))  // NOLINT
+      .Times(Exactly(1))
+      .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
   EXPECT_CALL(mock_current_directory_bar_,
-              SetDisplayedDirectory(Glib::ustring("/dir/")))
+              SetDisplayedDirectory(Glib::ustring("/dir/")))  // NOLINT
       .Times(Exactly(1))
-      .WillOnce(Return(true));
-  mock_window_.SimulateDirectoryChange("/dir/");  // NOLINT
-}
+      .WillOnce(Return());
 
-TEST_F(WindowTest, EnsureFileClickReceivedOnFileSelection) {
-  EXPECT_CALL(mock_window_, ShowFileDetails(_)).Times(Exactly(1));
-  mock_directory_files_view_.SimulateFileClick("cat.txt");
-}
-
-TEST_F(WindowTest, EnsureDirectoryUpdateOnDirectorySelection) {
-  EXPECT_CALL(mock_window_, UpdateDirectory(_))
-      .Times(Exactly(1))
-      .WillOnce(Return(true));
-  mock_directory_files_view_.SimulateDirectoryClick("cat.txt");
+  mock_directory_files_view_.SimulateDirectoryClick("dir");  // NOLINT
 }
 
 }  // namespace
