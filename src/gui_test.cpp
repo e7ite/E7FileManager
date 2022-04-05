@@ -24,6 +24,7 @@
 using ::testing::_;
 using ::testing::Exactly;
 using ::testing::InitGoogleTest;
+using ::testing::InSequence;
 using ::testing::Invoke;
 using ::testing::InvokeWithoutArgs;
 using ::testing::IsEmpty;
@@ -342,12 +343,16 @@ TEST_F(WindowTest, EnsureBackButtonRequestGoesBackDirectory) {
 }
 
 TEST_F(WindowTest, EnsureBackButtonGoesBackOneDir) {
-  EXPECT_CALL(mock_window_, GoBackDirectory())
+  EXPECT_CALL(mock_window_, HandleFullDirectoryChange(Glib::ustring("/dir/")))
+      .Times(Exactly(1))
+      .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+  EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
       .Times(Exactly(1))
       .WillOnce(
           InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
 
-  mock_window_.Window::UpdateDirectory("/dir");
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir/");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 
   mock_nav_bar_.SimulateBackButtonPress();
 
@@ -376,29 +381,56 @@ TEST_F(WindowTest, EnsureForwardButtonDoesNotGoBackWithoutHistory) {
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
 }
 
-TEST_F(WindowTest, EnsureForwardButtonGoesToDirBeforeBackButtonPressed) {
-  EXPECT_CALL(mock_window_, GoForwardDirectory())
-      .Times(Exactly(1))
-      .WillOnce(InvokeWithoutArgs(&mock_window_,
-                                  &MockWindow::CallGoForwardDirectory));
+TEST_F(WindowTest, EnsureForwardButtonGoesToPrevDirAfterBackButtonPressed) {
+  {
+    InSequence sequence_enforcer;
 
-  mock_window_.Window::UpdateDirectory("/dir");
+    EXPECT_CALL(mock_window_, HandleFullDirectoryChange(Glib::ustring("/dir")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_, GoForwardDirectory())
+        .Times(Exactly(1))
+        .WillOnce(InvokeWithoutArgs(&mock_window_,
+                                    &MockWindow::CallGoForwardDirectory));
+  }
+
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 
   mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
 
   mock_nav_bar_.SimulateForwardButtonPress();
-
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 }
 
 TEST_F(WindowTest, EnsureBackFromTwoDirectoryNavigationsWorks) {
-  EXPECT_CALL(mock_window_, GoBackDirectory())
-      .Times(Exactly(2))
-      .WillRepeatedly(
-          InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+  {
+    InSequence sequence_enforcer;
 
-  mock_window_.Window::UpdateDirectory("/dir");
-  mock_window_.Window::UpdateDirectory("/dir/nesteddir");
+    EXPECT_CALL(mock_window_, HandleFullDirectoryChange(Glib::ustring("/dir")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(
+        mock_window_,
+        HandleFullDirectoryChange(Glib::ustring("/dir/nesteddir")))  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
+        .Times(Exactly(2))
+        .WillRepeatedly(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+  }
+
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir/nesteddir");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
 
   mock_nav_bar_.SimulateBackButtonPress();
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
@@ -408,17 +440,36 @@ TEST_F(WindowTest, EnsureBackFromTwoDirectoryNavigationsWorks) {
 }
 
 TEST_F(WindowTest, NavigateTwoDirsBackBackForwardBack) {
-  EXPECT_CALL(mock_window_, GoBackDirectory())
-      .Times(Exactly(3))
-      .WillRepeatedly(
-          InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
-  EXPECT_CALL(mock_window_, GoForwardDirectory())
-      .Times(Exactly(1))
-      .WillRepeatedly(InvokeWithoutArgs(&mock_window_,
-                                        &MockWindow::CallGoForwardDirectory));
+  {
+    InSequence sequence_enforcer;
 
-  mock_window_.Window::UpdateDirectory("/dir");
-  mock_window_.Window::UpdateDirectory("/dir/nesteddir");
+    EXPECT_CALL(mock_window_, HandleFullDirectoryChange(Glib::ustring("/dir")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(
+        mock_window_,
+        HandleFullDirectoryChange(Glib::ustring("/dir/nesteddir")))  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
+        .Times(Exactly(2))
+        .WillRepeatedly(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_, GoForwardDirectory())
+        .Times(Exactly(1))
+        .WillRepeatedly(InvokeWithoutArgs(&mock_window_,
+                                          &MockWindow::CallGoForwardDirectory));
+    EXPECT_CALL(mock_window_, GoBackDirectory())
+        .Times(Exactly(1))
+        .WillRepeatedly(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+  }
+
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir/nesteddir");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
 
   mock_nav_bar_.SimulateBackButtonPress();
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
@@ -434,12 +485,16 @@ TEST_F(WindowTest, NavigateTwoDirsBackBackForwardBack) {
 }
 
 TEST_F(WindowTest, EnsureUpButtonRemovesOneDir) {
-  EXPECT_CALL(mock_window_, GoUpDirectory())
+  EXPECT_CALL(mock_window_, HandleFullDirectoryChange(Glib::ustring("/dir")))
+      .Times(Exactly(1))
+      .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+  EXPECT_CALL(mock_window_, GoUpDirectory())  // NOLINT
       .Times(Exactly(1))
       .WillOnce(
           InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoUpDirectory));
 
-  mock_window_.Window::UpdateDirectory("/dir");
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 
   mock_nav_bar_.SimulateUpButtonPress();
 
@@ -458,21 +513,33 @@ TEST_F(WindowTest, EnsureUpButtonDoesNotWorkOnRoot) {
 }
 
 TEST_F(WindowTest, UpButtonShouldClearHistory) {
-  EXPECT_CALL(mock_window_, GoBackDirectory())
-      .Times(Exactly(1))
-      .WillRepeatedly(
-          InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
-  EXPECT_CALL(mock_window_, GoForwardDirectory())
-      .Times(Exactly(1))
-      .WillRepeatedly(InvokeWithoutArgs(&mock_window_,
-                                        &MockWindow::CallGoForwardDirectory));
-  EXPECT_CALL(mock_window_, GoUpDirectory())
-      .Times(Exactly(1))
-      .WillRepeatedly(
-          InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoUpDirectory));
+  {
+    InSequence sequence_enforcer;
 
-  mock_window_.Window::UpdateDirectory("/dir");
-  mock_window_.Window::UpdateDirectory("/dir/nesteddir");
+    EXPECT_CALL(mock_window_, HandleFullDirectoryChange(Glib::ustring("/dir")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(
+        mock_window_,
+        HandleFullDirectoryChange(Glib::ustring("/dir/nesteddir")))  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_, GoUpDirectory())
+        .Times(Exactly(1))
+        .WillOnce(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoUpDirectory));
+    EXPECT_CALL(mock_window_, GoForwardDirectory())
+        .Times(Exactly(1))
+        .WillOnce(InvokeWithoutArgs(&mock_window_,
+                                    &MockWindow::CallGoForwardDirectory));
+  }
+
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir");
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir/nesteddir");
 
   mock_nav_bar_.SimulateBackButtonPress();
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
@@ -485,20 +552,34 @@ TEST_F(WindowTest, UpButtonShouldClearHistory) {
 }
 
 TEST_F(WindowTest, ChangeDirFromDirectoryBarShouldClearHistory) {
-  EXPECT_CALL(mock_window_, GoBackDirectory())
-      .Times(Exactly(2))
-      .WillRepeatedly(
-          InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
-  EXPECT_CALL(mock_window_, GoForwardDirectory())
-      .Times(Exactly(1))
-      .WillOnce(InvokeWithoutArgs(&mock_window_,
-                                  &MockWindow::CallGoForwardDirectory));
-  EXPECT_CALL(mock_window_, UpdateDirectory(Glib::ustring("/dir/nesteddir")))
-      .Times(Exactly(1))
-      .WillOnce(Invoke(&mock_window_, &MockWindow::CallUpdateDirectory));
+  {
+    InSequence sequence_enforcer;
 
-  mock_window_.Window::UpdateDirectory("/dir");            // NOLINT
-  mock_window_.Window::UpdateDirectory("/dir/nesteddir");  // NOLINT
+    EXPECT_CALL(mock_window_, HandleFullDirectoryChange(Glib::ustring("/dir")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(
+        mock_window_,
+        HandleFullDirectoryChange(Glib::ustring("/dir/nesteddir")))  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
+        .Times(Exactly(2))
+        .WillRepeatedly(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_,
+                HandleFullDirectoryChange(Glib::ustring("/dir/nesteddir")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoForwardDirectory())  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(InvokeWithoutArgs(&mock_window_,
+                                    &MockWindow::CallGoForwardDirectory));
+  }
+
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir");  // NOLINT
+  mock_current_directory_bar_.SimulateDirectoryChange(
+      "/dir/nesteddir");  // NOLINT
 
   mock_nav_bar_.SimulateBackButtonPress();
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
@@ -507,82 +588,215 @@ TEST_F(WindowTest, ChangeDirFromDirectoryBarShouldClearHistory) {
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
 
   mock_current_directory_bar_.SimulateDirectoryChange("/dir/nesteddir");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
 
   mock_nav_bar_.SimulateForwardButtonPress();
   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
 }
 
-// TEST_F(WindowTest, ChangingDirectoryUltimateBoss) {
-//   EXPECT_CALL(mock_window_, GoBackDirectory())
-//       .Times(Exactly(6))
-//       .WillRepeatedly(
-//           InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
-//   EXPECT_CALL(mock_window_, GoForwardDirectory())
-//       .Times(Exactly(5))
-//       .WillRepeatedly(InvokeWithoutArgs(&mock_window_,
-//                                         &MockWindow::CallGoForwardDirectory));
-//     EXPECT_CALL(mock_window_, GoUpDirectory())
-//       .Times(Exactly(1))
-//       .WillRepeatedly(
-//           InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoUpDirectory));
-//   EXPECT_CALL(mock_window_, UpdateDirectory(Glib::ustring("/meow")))
-//       .Times(Exactly(1))
-//       .WillOnce(Invoke(&mock_window_, &MockWindow::CallUpdateDirectory));
-//   EXPECT_CALL(mock_window_, UpdateDirectory(Glib::ustring("/dir/nesteddir/")))
-//       .Times(Exactly(1))
-//       .WillOnce(Invoke(&mock_window_, &MockWindow::CallUpdateDirectory));
-//   EXPECT_CALL(mock_current_directory_bar_,
-//               SetDisplayedDirectory(Glib::ustring("/dir/nesteddir/")))  // NOLINT
-//       .Times(Exactly(1))
-//       .WillOnce(Return(true));
-//   EXPECT_CALL(mock_current_directory_bar_,
-//               SetDisplayedDirectory(Glib::ustring("/meow")))  // NOLINT
-//       .Times(Exactly(1))
-//       .WillOnce(Return(true));
+TEST_F(WindowTest, ChangingDirectoryUltimateBoss) {
+  {
+    InSequence sequence_enforcer;
 
-//   mock_window_.Window::UpdateDirectory("/dir");
-//   mock_window_.Window::UpdateDirectory("/dir/nesteddir");
+    EXPECT_CALL(mock_window_, HandleFullDirectoryChange(Glib::ustring("/dir/")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(
+        mock_window_,
+        HandleFullDirectoryChange(Glib::ustring("/dir/nesteddir")))  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
+        .Times(Exactly(2))
+        .WillRepeatedly(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_, GoForwardDirectory())
+        .Times(Exactly(1))
+        .WillOnce(InvokeWithoutArgs(&mock_window_,
+                                    &MockWindow::CallGoForwardDirectory));
+    EXPECT_CALL(mock_window_, GoBackDirectory())
+        .Times(Exactly(1))
+        .WillOnce(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_, GoForwardDirectory())
+        .Times(Exactly(2))
+        .WillRepeatedly(InvokeWithoutArgs(&mock_window_,
+                                          &MockWindow::CallGoForwardDirectory));
+    EXPECT_CALL(mock_window_, GoBackDirectory())
+        .Times(Exactly(1))
+        .WillOnce(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_, HandleFullDirectoryChange(Glib::ustring("/meow")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_, GoForwardDirectory())
+        .Times(Exactly(1))
+        .WillOnce(InvokeWithoutArgs(&mock_window_,
+                                    &MockWindow::CallGoForwardDirectory));
+    EXPECT_CALL(mock_window_,
+                HandleFullDirectoryChange(Glib::ustring("/dir/nesteddir/")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
+        .Times(Exactly(1))
+        .WillOnce(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_, GoUpDirectory())
+        .Times(Exactly(1))
+        .WillRepeatedly(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoUpDirectory));
+    EXPECT_CALL(mock_window_, GoForwardDirectory())
+        .Times(Exactly(1))
+        .WillOnce(InvokeWithoutArgs(&mock_window_,
+                                    &MockWindow::CallGoForwardDirectory));
+    EXPECT_CALL(mock_window_,
+                HandleFullDirectoryChange(Glib::ustring("/dir/nesteddir")))
+        .Times(Exactly(1))
+        .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
+    EXPECT_CALL(mock_window_, GoBackDirectory())  // NOLINT
+        .Times(Exactly(4))
+        .WillRepeatedly(
+            InvokeWithoutArgs(&mock_window_, &MockWindow::CallGoBackDirectory));
+    EXPECT_CALL(mock_window_, GoForwardDirectory())
+        .Times(Exactly(5))
+        .WillRepeatedly(InvokeWithoutArgs(&mock_window_,
+                                          &MockWindow::CallGoForwardDirectory));
+  }
 
-//   mock_nav_bar_.SimulateBackButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+  // back_history: /
+  // forward_history:
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir/");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 
-//   mock_nav_bar_.SimulateBackButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+  // back_history: /, /dir/
+  // forward_history:
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir/nesteddir");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
 
-//   mock_nav_bar_.SimulateForwardButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+  // back_history: /
+  // forward_history: /dir/nesteddir/
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 
-//   mock_nav_bar_.SimulateBackButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+  // back_history:
+  // forward_history: /dir/nesteddir/, /dir/
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
 
-//   mock_nav_bar_.SimulateForwardButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+  // back_history: /
+  // forward_history: /dir/nesteddir/
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 
-//   mock_nav_bar_.SimulateForwardButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
+  // back_history:
+  // forward_history: /dir/nesteddir/, /dir/
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
 
-//   mock_nav_bar_.SimulateBackButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+  // back_history: /
+  // forward_history: /dir/nesteddir/
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 
-//   mock_current_directory_bar_.SimulateDirectoryChange("/meow");
+  // back_history: /, /dir/
+  // forward_history:
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
 
-//   mock_nav_bar_.SimulateBackButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+  // back_history: /
+  // forward_history: /dir/nesteddir
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 
-//   mock_nav_bar_.SimulateForwardButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/meow/");
+  // back_history: /, /dir/
+  // forward_history:
+  mock_current_directory_bar_.SimulateDirectoryChange("/meow");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/meow/");
 
-//   mock_window_.SimulateDirectoryChange("/dir/nesteddir/");
+  // back_history: /
+  // forward_history: /meow/
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
 
-//   mock_nav_bar_.SimulateBackButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/meow/");
+  // back_history: /, /dir/
+  // forward_history:
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/meow/");
 
-//   mock_nav_bar_.SimulateUpButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+  // back_history: /, /dir/, /meow/
+  // forward_history:
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir/nesteddir/");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
 
-//   mock_nav_bar_.SimulateForwardButtonPress();
-//   ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
-// }
+  // back_history: /, /dir/
+  // forward_history: /dir/nesteddir
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/meow/");
+
+  // back_history: /, /dir/, /meow/
+  // forward_history:
+  mock_nav_bar_.SimulateUpButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+
+  // back_history: /, /dir/, /meow/
+  // forward_history:
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+
+  // back_history: /, /dir/, /meow/, /
+  // forward_history:
+  mock_current_directory_bar_.SimulateDirectoryChange("/dir/nesteddir");
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
+
+  // back_history: /, /dir/, /meow/
+  // forward_history: /dir/nesteddir/
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+
+  // back_history: /, /dir/
+  // forward_history: /dir/nesteddir/, /
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/meow/");
+
+  // back_history: /
+  // forward_history: /dir/nesteddir/, /, /meow/
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+
+  // back_history:
+  // forward_history: /dir/nesteddir/, /, /meow/, /dir/
+  mock_nav_bar_.SimulateBackButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+
+  // back_history: /
+  // forward_history: /dir/nesteddir/, /, /meow/
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/");
+
+  // back_history: /, /dir/
+  // forward_history: /dir/nesteddir/, /
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/meow/");
+
+  // back_history: /, /dir/, /meow
+  // forward_history: /dir/nesteddir/
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/");
+
+  // back_history: /, /dir/, /meow, /
+  // forward_history:
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
+
+  // back_history: /, /dir/, /meow, /
+  // forward_history:
+  mock_nav_bar_.SimulateForwardButtonPress();
+  ASSERT_STREQ(mock_window_.GetCurrentDirectory().c_str(), "/dir/nesteddir/");
+}
 
 TEST_F(WindowTest, EnsureForwardButtonRequestReceived) {
   EXPECT_CALL(mock_window_, GoForwardDirectory()).Times(Exactly(1));
@@ -605,14 +819,10 @@ TEST_F(WindowTest, EnsureFileIsSearchedFor) {
 }
 
 TEST_F(WindowTest, EnsureWindowDirectoryUpdatesUponDirectoryBarChange) {
-  EXPECT_CALL(mock_window_, UpdateDirectory(Glib::ustring("/dir/")))
+  EXPECT_CALL(mock_window_,
+              HandleFullDirectoryChange(Glib::ustring("/dir/")))  // NOLINT
       .Times(Exactly(1))
-      .WillOnce(Invoke(&mock_window_, &MockWindow::CallUpdateDirectory))
-      .WillOnce(Return(true));
-  EXPECT_CALL(mock_current_directory_bar_,
-              SetDisplayedDirectory(Glib::ustring("/dir/")))  // NOLINT
-      .Times(Exactly(1))
-      .WillOnce(Return(true));
+      .WillOnce(Invoke(&mock_window_, &MockWindow::CallFullDirectoryChange));
 
   mock_current_directory_bar_.SimulateDirectoryChange("/dir/");  // NOLINT
 
