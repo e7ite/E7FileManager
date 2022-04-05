@@ -156,6 +156,28 @@ Glib::ustring RemoveLastDirectoryFromPath(const Glib::ustring &full_path,
   return Glib::ustring(cleaned_dir.data(), cleaned_dir.size());
 }
 
+// Verifies the entered directory with the file system. Returns false if the
+// directory entered is not found.
+//
+// Only full paths are accepted through new_directory. Relative paths are not.
+absl::StatusOr<Glib::ustring> VerifyAndCleanDirectoryUpdate(
+    const Glib::ustring &old_directory, const Glib::ustring &new_directory,
+    const FileSystem &fs) {
+  if (!fs.GetDirectoryFiles(new_directory).ok())
+    return absl::NotFoundError("Directory not found!");
+
+  Glib::ustring cleaned_new_directory = new_directory;
+  if (cleaned_new_directory.at(cleaned_new_directory.length() - 1) !=
+      gunichar('/'))
+    cleaned_new_directory += '/';
+
+  // Don't update directory if we are already here. Keeps some logic simplified.
+  if (old_directory == cleaned_new_directory)
+    return absl::InvalidArgumentError("Already in this directory");
+
+  return cleaned_new_directory;
+}
+
 }  // namespace
 
 NavBar::NavBar() {}
@@ -171,10 +193,18 @@ Window::Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar,
       current_directory_bar_(&directory_bar),
       directory_view_(&directory_view),
       file_system_(&file_system) {
-  navigate_buttons_->OnBackButtonPress([this]() { this->GoBackDirectory(); });
-  navigate_buttons_->OnUpButtonPress([this]() { this->GoUpDirectory(); });
-  navigate_buttons_->OnForwardButtonPress(
-      [this]() { this->GoForwardDirectory(); });
+  navigate_buttons_->OnBackButtonPress([this]() {
+    this->GoBackDirectory();
+    this->RefreshWindowComponents();
+  });
+  navigate_buttons_->OnUpButtonPress([this]() {
+    this->GoUpDirectory();
+    this->RefreshWindowComponents();
+  });
+  navigate_buttons_->OnForwardButtonPress([this]() {
+    this->GoForwardDirectory();
+    this->RefreshWindowComponents();
+  });
 
   current_directory_bar_->OnFileToSearchEntered(
       [this](const Glib::ustring &file_name, [[maybe_unused]] int *) {
@@ -182,7 +212,8 @@ Window::Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar,
       });
   current_directory_bar_->OnDirectoryChange(
       [this](const Glib::ustring &directory_name, [[maybe_unused]] int *) {
-        this->UpdateDirectory(directory_name);
+        this->HandleFullDirectoryChange(directory_name);
+        this->RefreshWindowComponents();
       });
 
   directory_view_->OnFileClick([this](const Glib::ustring &file_name) {
@@ -199,10 +230,12 @@ Window::~Window() {}
 void Window::GoBackDirectory() {
   if (back_directory_history_.empty()) return;
 
-  forward_directory_history_.push(current_directory_);
+  std::string previous_directory = back_directory_history_.top();
 
-  current_directory_ = back_directory_history_.top();
+  forward_directory_history_.push(current_directory_);
   back_directory_history_.pop();
+
+  UpdateDirectory(previous_directory);
 }
 
 void Window::GoUpDirectory() {
@@ -218,48 +251,46 @@ void Window::GoUpDirectory() {
     return;
   }
 
+  // Any directory change not using history should clear forward history.
   back_directory_history_.push(current_directory_);
+  forward_directory_history_ = std::stack<Glib::ustring>();
 
   // Second to last string in split directories should be directory to remove.
-  current_directory_ = RemoveLastDirectoryFromPath(
+  std::string updated_path = RemoveLastDirectoryFromPath(
       current_directory_, *(split_directories.rbegin() + 1));
 
-  // Any directory change not using history should clear forward history.
-  forward_directory_history_ = std::stack<Glib::ustring>();
+  UpdateDirectory(updated_path);
 }
 
 void Window::GoForwardDirectory() {
   if (forward_directory_history_.empty()) return;
 
-  back_directory_history_.push(current_directory_);
+  std::string previous_directory = forward_directory_history_.top();
 
-  current_directory_ = forward_directory_history_.top();
+  back_directory_history_.push(current_directory_);
   forward_directory_history_.pop();
+
+  UpdateDirectory(previous_directory);
 }
 
 dirent *Window::SearchForFile(const Glib::ustring &file_name) {
   return nullptr;
 }
 
-bool Window::UpdateDirectory(const Glib::ustring &new_directory) {
-  if (!file_system_->GetDirectoryFiles(new_directory).ok()) return false;
+void Window::UpdateDirectory(const Glib::ustring &new_directory) {
+  current_directory_ = new_directory;
+}
 
-  Glib::ustring cleaned_new_directory = new_directory;
-  if (cleaned_new_directory.at(cleaned_new_directory.length() - 1) !=
-      gunichar('/'))
-    cleaned_new_directory += '/';
-
-  // Don't update directory if we are already here. Keeps some logic simplified.
-  if (current_directory_ == cleaned_new_directory) return false;
+void Window::HandleFullDirectoryChange(const Glib::ustring &new_directory) {
+  absl::StatusOr<Glib::ustring> new_cleaned_directory =
+      VerifyAndCleanDirectoryUpdate(current_directory_, new_directory,
+                                    *file_system_);
+  if (!new_cleaned_directory.ok()) return;
 
   back_directory_history_.push(current_directory_);
   forward_directory_history_ = std::stack<Glib::ustring>();
 
-  current_directory_ = cleaned_new_directory;
-
-  current_directory_bar_->SetDisplayedDirectory(new_directory);
-
-  return true;
+  UpdateDirectory(new_cleaned_directory.value());
 }
 
 void Window::ShowFileDetails(const Glib::ustring &file_name) {}
@@ -273,11 +304,6 @@ DirectoryFilesView &Window::GetDirectoryFilesView() {
 }
 FileSystem &Window::GetFileSystem() { return *file_system_.get(); }
 Glib::ustring Window::GetCurrentDirectory() { return current_directory_; }
-
-bool CurrentDirectoryBar::SetDisplayedDirectory(
-    const Glib::ustring &new_directory) {
-  return true;
-}
 
 UIWindow::UIWindow()
     : ::Window(*new UINavBar(), *new UICurrentDirectoryBar(),
@@ -300,6 +326,22 @@ UIWindow::UIWindow()
       dynamic_cast<UIDirectoryFilesView &>(GetDirectoryFilesView());
   window_widgets_.attach(directory_files_view.GetWindow(), /*left=*/1,
                          /*top=*/1);
+}
+
+void UIWindow::RefreshWindowComponents() {
+  const Glib::ustring &new_directory = GetCurrentDirectory();
+
+  absl::StatusOr<std::vector<std::string>> file_names =
+      GetFileSystem().GetDirectoryFiles(new_directory);
+  if (!file_names.ok()) return;
+
+  GetDirectoryFilesView().RemoveAllFiles();
+
+  for (std::string file_name : file_names.value()) {
+    GetDirectoryFilesView().AddFile(file_name);
+  }
+
+  GetDirectoryBar().SetDisplayedDirectory(new_directory);
 
   show_all();
 }

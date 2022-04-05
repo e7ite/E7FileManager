@@ -112,12 +112,7 @@ class Window {
   virtual void GoBackDirectory();
   virtual void GoForwardDirectory();
   virtual void GoUpDirectory();
-
-  // Method to request for the window to change the current directory, based on
-  // the argument. Returns false if the directory entered is not found.
-  //
-  // Only full paths are accepted through new_directory. Relative paths are not.
-  virtual bool UpdateDirectory(const Glib::ustring &new_directory);
+  virtual void HandleFullDirectoryChange(const Glib::ustring &new_directory);
 
   // Will search for the file passed in, relative to the current directory.
   //
@@ -137,7 +132,14 @@ class Window {
 
   Glib::ustring GetCurrentDirectory();
 
+  // Updates all the widgets shown on the window. Should be called after any
+  // widget update such as a directory change.
+  virtual void RefreshWindowComponents() = 0;
+
  private:
+  // Asssumes new_directory to be valid.
+  void UpdateDirectory(const Glib::ustring &new_directory);
+
   std::unique_ptr<NavBar> navigate_buttons_;
   std::unique_ptr<CurrentDirectoryBar> current_directory_bar_;
   std::unique_ptr<DirectoryFilesView> directory_view_;
@@ -163,6 +165,11 @@ class UIWindow : public Gtk::Window, public Window {
   UIWindow &operator=(const UIWindow &) = delete;
   UIWindow &operator=(UIWindow &&) = delete;
   virtual ~UIWindow() {}
+
+  // Updates all the window widgets after an internal update. Must be called
+  // after instantiation of the window. TODO: Maybe create a better design so
+  // the user doesn't have to call this themselves?
+  void RefreshWindowComponents() override;
 
  private:
   Gtk::Grid window_widgets_;

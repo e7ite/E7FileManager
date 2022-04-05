@@ -278,28 +278,25 @@ class MockWindow : public Window {
   MOCK_METHOD(void, GoBackDirectory, (), (override));
   MOCK_METHOD(void, GoForwardDirectory, (), (override));
   MOCK_METHOD(void, GoUpDirectory, (), (override));
+  MOCK_METHOD(void, HandleFullDirectoryChange,
+              (const Glib::ustring& new_directory), (override));
 
   MOCK_METHOD(dirent*, SearchForFile, (const Glib::ustring& file_name),
-              (override));
-
-  MOCK_METHOD(bool, UpdateDirectory, (const Glib::ustring& new_directory),
               (override));
 
   MOCK_METHOD(void, ShowFileDetails, (const Glib::ustring& file_name),
               (override));
 
-  // Needed to ensure mock method actually calls base class method, since
-  // MOCK_METHOD will override and not actually call the base method.
-  bool CallUpdateDirectory(const Glib::ustring& new_directory) {
-    return Window::UpdateDirectory(new_directory);
-  }
-
   void CallGoBackDirectory() { Window::GoBackDirectory(); }
   void CallGoForwardDirectory() { Window::GoForwardDirectory(); }
   void CallGoUpDirectory() { Window::GoUpDirectory(); }
+  void CallFullDirectoryChange(const Glib::ustring& new_directory) {
+    Window::HandleFullDirectoryChange(new_directory);
+  }
 
-  void SimulateDirectoryChange(const Glib::ustring& new_directory) {
-    GetDirectoryBar().SetDisplayedDirectory(new_directory);
+  void RefreshWindowComponents() override {
+    GetDirectoryBar().SetDisplayedDirectory(GetCurrentDirectory());
+    GetDirectoryFilesView().AddFile("meow.txt");
   }
 };
 
@@ -313,11 +310,11 @@ class WindowTest : public ::testing::Test {
             {new MockFile("meow.txt"),
              new MockDirectory(
                  "dir",
-                 {new MockDirectory(
-                     "nesteddir", {new MockFile("lmao.txt"),
-                                   new MockFile("nameabettertest.cpp"),
-                                   new MockFile("whyyoualwayslying.lol")})}), 
-              new MockDirectory("meow", {})})),
+                 {new MockDirectory("nesteddir",
+                                    {new MockFile("lmao.txt"),
+                                     new MockFile("nameabettertest.cpp"),
+                                     new MockFile("whyyoualwayslying.lol")})}),
+             new MockDirectory("meow", {})})),
         mock_window_(mock_nav_bar_, mock_current_directory_bar_,
                      mock_directory_files_view_, mock_file_system_) {}
 
