@@ -9,6 +9,7 @@
 #include <gtkmm/entry.h>
 #include <gtkmm/grid.h>
 #include <gtkmm/scrolledwindow.h>
+#include <gtkmm/togglebutton.h>
 #include <gtkmm/window.h>
 
 #include <functional>
@@ -136,13 +137,36 @@ class UIDirectoryFilesView : public DirectoryFilesView {
   virtual ~UIDirectoryFilesView() {}
 
   void OnFileClick(
-      std::function<void(const Glib::ustring &)> callback) override {}
+      std::function<void(const Glib::ustring &)> callback) override {
+    file_clicked_callback_ = callback;
+  }
   void OnDirectoryClick(
-      std::function<void(const Glib::ustring &)> callback) override {}
+      std::function<void(const Glib::ustring &)> callback) override {
+    directory_clicked_callback_ = callback;
+  }
+
+  void AddFile(const Glib::ustring &file_name) override {
+    auto *button = Gtk::make_managed<Gtk::ToggleButton>(file_name.data());
+    button->signal_button_press_event().connect(
+        [this, file_name](GdkEventButton *button_event) -> bool {
+          this->file_clicked_callback_(file_name);
+          return true;
+        });
+    file_entry_widgets_.pack_start(*button);
+  }
+
+  void RemoveAllFiles() override {
+    for (Gtk::Widget *file_entry : file_entry_widgets_.get_children()) {
+      file_entry_widgets_.remove(*file_entry);
+      delete file_entry;
+    }
+  }
 
   Gtk::ScrolledWindow &GetWindow() { return file_entries_window_; }
 
  private:
+  std::function<void(const Glib::ustring &)> file_clicked_callback_;
+  std::function<void(const Glib::ustring &)> directory_clicked_callback_;
   Gtk::ScrolledWindow file_entries_window_;
   Gtk::Box file_entry_widgets_;
 };
