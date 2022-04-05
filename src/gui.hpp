@@ -88,6 +88,14 @@ class DirectoryFilesView {
   // to check that behavior.
   virtual void OnDirectoryClick(
       std::function<void(const Glib::ustring &)> callback) = 0;
+
+  // Adds a file to be displayed on the file view. This can be a file or a
+  // directory (following Unix's everything is a file ideology). Will register
+  // the callback specified in OnFileClick() to this file.
+  virtual void AddFile(const Glib::ustring &file_name) = 0;
+
+  // Removes all files that are currently displaying in the window view.
+  virtual void RemoveAllFiles() = 0;
 };
 
 // Base data structure for application window that holds all internal state,

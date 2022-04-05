@@ -217,12 +217,20 @@ Window::Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar,
       });
 
   directory_view_->OnFileClick([this](const Glib::ustring &file_name) {
-    this->ShowFileDetails(file_name);
+    // Assumes the file name passed is relative without any directory notation
+    // on it.
+    std::string new_directory = this->GetCurrentDirectory() + file_name;
+    this->HandleFullDirectoryChange(new_directory);
+    this->RefreshWindowComponents();
   });
-  directory_view_->OnDirectoryClick(
-      [this](const Glib::ustring &directory_name) {
-        this->UpdateDirectory(directory_name);
-      });
+  directory_view_->OnDirectoryClick([this](
+                                        const Glib::ustring &directory_name) {
+    // Assumes the directory name passed is relative without any directory
+    // notation on it.
+    std::string new_directory = this->GetCurrentDirectory() + directory_name;
+    this->HandleFullDirectoryChange(new_directory);
+    this->RefreshWindowComponents();
+  });
 }
 
 Window::~Window() {}

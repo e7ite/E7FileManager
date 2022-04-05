@@ -237,6 +237,9 @@ class MockDirectoryFilesView : public DirectoryFilesView {
   MockDirectoryFilesView& operator=(const MockDirectoryFilesView&) = delete;
   MockDirectoryFilesView& operator=(MockDirectoryFilesView&&) = delete;
 
+  MOCK_METHOD(void, AddFile, (const Glib::ustring& directory_name), (override));
+  MOCK_METHOD(void, RemoveAllFiles, (), (override));
+
   void OnFileClick(
       std::function<void(const Glib::ustring&)> callback) override {
     file_clicked_callback_ = callback;
@@ -247,10 +250,14 @@ class MockDirectoryFilesView : public DirectoryFilesView {
     directory_clicked_callback_ = callback;
   }
 
+  // Must only contain names of files without any path notation to it, as that
+  // is how the program will receive the files.
   void SimulateFileClick(const Glib::ustring& file_name) {
     file_clicked_callback_(file_name);
   }
 
+  // Must only contain names of directories without any path notation to it, as
+  // that is how the program will receive the files.
   void SimulateDirectoryClick(const Glib::ustring& directory_name) {
     directory_clicked_callback_(directory_name);
   }
