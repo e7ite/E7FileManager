@@ -27,9 +27,9 @@ class UINavBar : public NavBar {
 
     // Insert in this order so the up button is at the right, and the back
     // button is at the left.
-    border_.pack_start(up_button_, Gtk::PackOptions::PACK_SHRINK);
-    border_.pack_start(forward_button_, Gtk::PackOptions::PACK_SHRINK);
     border_.pack_start(back_button_, Gtk::PackOptions::PACK_SHRINK);
+    border_.pack_start(forward_button_, Gtk::PackOptions::PACK_SHRINK);
+    border_.pack_start(up_button_, Gtk::PackOptions::PACK_SHRINK);
 
     border_.set_border_width(20);
   }
