@@ -118,9 +118,12 @@ absl::StatusOr<std::vector<std::string>> POSIXFileSystem::GetDirectoryFiles(
   if (dir == nullptr) return absl::NotFoundError("Error opening file");
 
   std::vector<std::string> file_names;
-  for (dirent *file = readdir(dir); file != nullptr; file = readdir(dir))
-    if (file->d_type == DT_REG || file->d_type == DT_DIR)
-      file_names.push_back(file->d_name);
+  for (dirent *file = readdir(dir); file != nullptr; file = readdir(dir)) {
+    std::string_view file_name = file->d_name;
+    if ((file->d_type == DT_REG || file->d_type == DT_DIR) &&
+        file_name != "." && file_name != "..")
+      file_names.push_back(file_name.data());
+  }
 
   return file_names;
 }
