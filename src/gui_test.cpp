@@ -193,6 +193,11 @@ class MockNavBar : public NavBar {
 // send fake responses imititating calls from GTKMM, to mimic a user requesting
 // a change to the current directory or a file search.
 class MockCurrentDirectoryBar : public CurrentDirectoryBar {
+  struct MockTextBox {
+    Glib::ustring text_;
+    std::function<void()> callback_;
+  };
+
  public:
   MockCurrentDirectoryBar() : CurrentDirectoryBar() {}
 
@@ -205,27 +210,35 @@ class MockCurrentDirectoryBar : public CurrentDirectoryBar {
   MOCK_METHOD(void, SetDisplayedDirectory, (const Glib::ustring& new_directory),
               (override));
 
-  void OnDirectoryChange(
-      std::function<void(const Glib::ustring&, int*)> callback) override {
-    directory_changed_callback_ = callback;
+  Glib::ustring GetDirectoryBarText() override {
+    return mock_current_directory_box_.text_;
+  }
+
+  Glib::ustring GetFileSearchBarText() override {
+    return mock_file_entry_box_.text_;
+  }
+
+  void OnDirectoryChange(std::function<void()> callback) override {
+    mock_current_directory_box_.callback_ = callback;
   }
 
   void SimulateDirectoryChange(const Glib::ustring& directory_name) {
-    directory_changed_callback_(directory_name, nullptr);
+    mock_current_directory_box_.text_ = directory_name;
+    mock_current_directory_box_.callback_();
   }
 
-  void OnFileToSearchEntered(
-      std::function<void(const Glib::ustring&, int*)> callback) override {
-    file_typed_callback_ = callback;
+  void OnFileToSearchEntered(std::function<void()> callback) override {
+    mock_file_entry_box_.callback_ = callback;
   }
 
   void SimulateFileToSearchEntered(const Glib::ustring& file_name) {
-    file_typed_callback_(file_name, nullptr);
+    mock_file_entry_box_.text_ = file_name;
+    mock_file_entry_box_.callback_();
   }
 
  private:
-  std::function<void(const Glib::ustring&, int*)> file_typed_callback_;
-  std::function<void(const Glib::ustring&, int*)> directory_changed_callback_;
+  MockTextBox mock_file_entry_box_;
+  MockTextBox mock_current_directory_box_;
 };
 
 class MockDirectoryFilesView : public DirectoryFilesView {

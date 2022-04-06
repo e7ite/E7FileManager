@@ -46,6 +46,9 @@ class CurrentDirectoryBar {
   CurrentDirectoryBar &operator=(CurrentDirectoryBar &&) = delete;
   virtual ~CurrentDirectoryBar();
 
+  virtual Glib::ustring GetDirectoryBarText() = 0;
+  virtual Glib::ustring GetFileSearchBarText() = 0;
+
   // This sets the internal text displayed for the current directory text box
   // (located below the file search box), to the argument. Expects the directory
   // entered to be valid.
@@ -54,13 +57,11 @@ class CurrentDirectoryBar {
   // This can be used to register an action to take when there is a request to
   // update the directory, specifically from the directory bar. This can be
   // such as when a user manually enters a directory to navigate to.
-  virtual void OnDirectoryChange(
-      std::function<void(const Glib::ustring &, int *)> callback) = 0;
+  virtual void OnDirectoryChange(std::function<void()> callback) = 0;
 
   // Registers an action to take when there is a request to search for a file.
   // Happens when the user types a file name into the file search bar.
-  virtual void OnFileToSearchEntered(
-      std::function<void(const Glib::ustring &, int *)> callback) = 0;
+  virtual void OnFileToSearchEntered(std::function<void()> callback) = 0;
 };
 
 // Represents the window that lists the files in a directory on the file system.

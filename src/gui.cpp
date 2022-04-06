@@ -84,12 +84,19 @@ class UICurrentDirectoryBar : public CurrentDirectoryBar {
   UICurrentDirectoryBar &operator=(UICurrentDirectoryBar &&) = delete;
   virtual ~UICurrentDirectoryBar() {}
 
-  void OnDirectoryChange(
-      std::function<void(const Glib::ustring &, int *)> callback) override {}
+  Glib::ustring GetDirectoryBarText() override {
+    return this->current_directory_entry_box_.get_text();
+  }
+  Glib::ustring GetFileSearchBarText() override {
+    return this->file_search_entry_box_.get_text();
+  }
 
-  void OnFileToSearchEntered(
-      std::function<void(const Glib::ustring &, int *)> callback) override {
-    file_search_entry_box_.signal_insert_text().connect(callback);
+  void OnDirectoryChange(std::function<void()> callback) override {
+    current_directory_entry_box_.signal_activate().connect(callback);
+  }
+
+  void OnFileToSearchEntered(std::function<void()> callback) override {
+    file_search_entry_box_.signal_activate().connect(callback);
   }
 
   void SetDisplayedDirectory(const Glib::ustring &new_directory) override {
@@ -230,15 +237,14 @@ Window::Window(NavBar &nav_bar, CurrentDirectoryBar &directory_bar,
     this->RefreshWindowComponents();
   });
 
-  current_directory_bar_->OnFileToSearchEntered(
-      [this](const Glib::ustring &file_name, [[maybe_unused]] int *) {
-        this->SearchForFile(file_name);
-      });
-  current_directory_bar_->OnDirectoryChange(
-      [this](const Glib::ustring &directory_name, [[maybe_unused]] int *) {
-        this->HandleFullDirectoryChange(directory_name);
-        this->RefreshWindowComponents();
-      });
+  current_directory_bar_->OnFileToSearchEntered([this]() {
+    this->SearchForFile(this->GetDirectoryBar().GetFileSearchBarText());
+  });
+  current_directory_bar_->OnDirectoryChange([this]() {
+    this->HandleFullDirectoryChange(
+        this->GetDirectoryBar().GetDirectoryBarText());
+    this->RefreshWindowComponents();
+  });
 
   directory_view_->OnFileClick([this](const Glib::ustring &file_name) {
     // Assumes the file name passed is relative without any directory notation
