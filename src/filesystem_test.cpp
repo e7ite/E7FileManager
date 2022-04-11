@@ -291,4 +291,66 @@ TEST(MockFileSystemTest, AccessNestedDirectoryWithExtraForwardSlash) {
               IsOkAndHolds(UnorderedElementsAre("meow.txt")));
 }
 
+TEST(MockFileSystemTest, EnsureRegFilesDifferentFromDirectoriesInRoot) {
+   MockFileSystem mock_fs({new MockFile("meow.txt"),
+             new MockDirectory(
+                 "dir",
+                 {}),
+             new MockDirectory("meow", {})});
+
+  absl::StatusOr<std::vector<File>> root_files = mock_fs.GetDirectoryFiles("/");
+  EXPECT_THAT(root_files, IsOkAndHolds(SizeIs(3)));
+
+  const std::vector<File> &extracted_files = root_files.value();
+  EXPECT_EQ(extracted_files[0].GetName(), "meow.txt");
+  EXPECT_FALSE(extracted_files[0].IsDirectory());
+  EXPECT_EQ(extracted_files[1].GetName(), "dir");
+  EXPECT_TRUE(extracted_files[1].IsDirectory());
+  EXPECT_EQ(extracted_files[2].GetName(), "meow");
+  EXPECT_TRUE(extracted_files[2].IsDirectory());
+}
+
+TEST(MockFileSystemTest, EnsureRegFilesDifferentFromDirectoriesInDir) {
+  MockFileSystem mock_fs({new MockDirectory(
+                 "dir",
+                 {new MockFile("lmao.txt"),
+                                     new MockFile("nameabettertest.cpp"),
+                                     new MockFile("whyyoualwayslying.lol")}),
+             new MockDirectory("meow", {})});
+
+  absl::StatusOr<std::vector<File>> dir_files = mock_fs.GetDirectoryFiles("/dir");
+  EXPECT_THAT(dir_files, IsOkAndHolds(SizeIs(3)));
+
+  const std::vector<File> &extracted_files = dir_files.value();
+  EXPECT_EQ(extracted_files[0].GetName(), "lmao.txt");
+  EXPECT_FALSE(extracted_files[0].IsDirectory());
+  EXPECT_EQ(extracted_files[1].GetName(), "nameabettertest.cpp");
+  EXPECT_FALSE(extracted_files[1].IsDirectory());
+  EXPECT_EQ(extracted_files[2].GetName(), "whyyoualwayslying.lol");
+  EXPECT_FALSE(extracted_files[2].IsDirectory());
+}
+
+TEST(MockFileSystemTest, EnsureRegFilesDifferentFromDirectoriesINestedDir) {
+
+  MockFileSystem mock_fs({new MockFile("meow.txt"),
+             new MockDirectory(
+                 "dir",
+                 {new MockDirectory("nesteddir",
+                                    {new MockFile("lmao.txt"),
+                                     new MockFile("nameabettertest.cpp"),
+                                     new MockFile("whyyoualwayslying.lol")})}),
+             new MockDirectory("meow", {})});
+
+  absl::StatusOr<std::vector<File>> dir_files = mock_fs.GetDirectoryFiles("/dir/nesteddir");
+  EXPECT_THAT(dir_files, IsOkAndHolds(SizeIs(3)));
+
+  const std::vector<File> &extracted_files = dir_files.value();
+  EXPECT_EQ(extracted_files[0].GetName(), "lmao.txt");
+  EXPECT_FALSE(extracted_files[0].IsDirectory());
+  EXPECT_EQ(extracted_files[1].GetName(), "nameabettertest.cpp");
+  EXPECT_FALSE(extracted_files[1].IsDirectory());
+  EXPECT_EQ(extracted_files[2].GetName(), "whyyoualwayslying.lol");
+  EXPECT_FALSE(extracted_files[2].IsDirectory());
+}
+
 }  // namespace

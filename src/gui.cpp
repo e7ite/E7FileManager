@@ -369,14 +369,14 @@ UIWindow::UIWindow()
 void UIWindow::RefreshWindowComponents() {
   const Glib::ustring &new_directory = GetCurrentDirectory();
 
-  absl::StatusOr<std::vector<std::string>> file_names =
+  absl::StatusOr<std::vector<File>> file_names =
       GetFileSystem().GetDirectoryFiles(new_directory);
   if (!file_names.ok()) return;
 
   GetDirectoryFilesView().RemoveAllFiles();
 
-  for (std::string file_name : file_names.value()) {
-    GetDirectoryFilesView().AddFile(file_name);
+  for (const File &file : file_names.value()) {
+    GetDirectoryFilesView().AddFile(file.GetName());
   }
 
   GetDirectoryBar().SetDisplayedDirectory(new_directory);

@@ -8,6 +8,26 @@
 #include <string>
 #include <vector>
 
+class MockFile;
+
+// Abstracted file object for all different supported file systems.
+class File {
+ public:
+  static absl::StatusOr<File> Create(dirent *file);
+  static absl::StatusOr<File> Create(const MockFile &file);
+
+  std::string GetName() const;
+  bool IsDirectory() const;
+
+  bool operator==(const char *file_name) const;
+
+ private:
+  File(std::string name, bool is_dir);
+
+  std::string file_name_;
+  bool is_dir_;
+};
+
 // Abstraction layer that to interact with a file system. Provides method to
 // list all files on a given directory and open, read, and write individual
 // files on the file system.
@@ -19,7 +39,7 @@ class FileSystem {
   // Must be a full path, no relative links will succeed. Returns an
   // absl::NotFoundError if the directory does not exist. Else will contain a
   // an array of file names that existed in the specified directory.
-  virtual absl::StatusOr<std::vector<std::string>> GetDirectoryFiles(
+  virtual absl::StatusOr<std::vector<File>> GetDirectoryFiles(
       const Glib::ustring &directory) const = 0;
 };
 
@@ -69,7 +89,7 @@ class MockFileSystem : public FileSystem {
 
   virtual ~MockFileSystem() = default;
 
-  absl::StatusOr<std::vector<std::string>> GetDirectoryFiles(
+  absl::StatusOr<std::vector<File>> GetDirectoryFiles(
       const Glib::ustring &directory) const override;
 
   const MockDirectory &GetRoot() const { return root_; }
@@ -83,7 +103,7 @@ class POSIXFileSystem : public FileSystem {
  public:
   virtual ~POSIXFileSystem() = default;
 
-  absl::StatusOr<std::vector<std::string>> GetDirectoryFiles(
+  absl::StatusOr<std::vector<File>> GetDirectoryFiles(
       const Glib::ustring &directory) const override;
 };
 
