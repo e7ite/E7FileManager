@@ -3,11 +3,15 @@
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
 #include <dirent.h>
+#include <gdk/gdkpixbuf.h>
+#include <glibmm/fileutils.h>
+#include <glibmm/miscutils.h>
 #include <glibmm/ustring.h>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
 #include <gtkmm/entry.h>
 #include <gtkmm/grid.h>
+#include <gtkmm/image.h>
 #include <gtkmm/scrolledwindow.h>
 #include <gtkmm/togglebutton.h>
 #include <gtkmm/window.h>
@@ -152,11 +156,33 @@ class UIDirectoryFilesView : public DirectoryFilesView {
     directory_clicked_callback_ = callback;
   }
 
-  void AddFile(const Glib::ustring &file_name) override {
-    auto *button = Gtk::make_managed<Gtk::ToggleButton>(file_name.data());
+  void AddFile(const File &file) override {
+    Glib::RefPtr<Gdk::Pixbuf> file_type_icon_buf;
+    std::string icon_full_path = file.IsDirectory()
+                                     ? "/project/icons/folder.png"
+                                     : "/project/icons/empty.png";
+    try {
+      file_type_icon_buf = Gdk::Pixbuf::create_from_file(icon_full_path);
+    } catch (const Glib::FileError &file_error) {
+      std::cerr << "Caught Glib::FileError: " << std::string(file_error.what())
+                << std::endl;
+
+    } catch (const Gdk::PixbufError &pixbuf_error) {
+      std::cerr << "Caught Gdk::PixbufError: "
+                << std::string(pixbuf_error.what()) << std::endl;
+    }
+
+    auto *file_type_icon = Gtk::make_managed<Gtk::Image>(file_type_icon_buf);
+    auto *button = Gtk::make_managed<Gtk::ToggleButton>(file.GetName());
+    button->set_hexpand(true);
+    button->set_image(*file_type_icon);
+    button->set_always_show_image(true);
+    button->set_image_position(Gtk::PositionType::POS_LEFT);
+    button->set_alignment(0.0f, 0.5f);
+
     button->signal_button_press_event().connect(
-        [this, file_name](GdkEventButton *button_event) -> bool {
-          this->file_clicked_callback_(file_name);
+        [this, file](GdkEventButton *button_event) -> bool {
+          this->file_clicked_callback_(file.GetName());
           return true;
         });
     file_entry_widgets_.pack_start(*button);
@@ -376,7 +402,7 @@ void UIWindow::RefreshWindowComponents() {
   GetDirectoryFilesView().RemoveAllFiles();
 
   for (const File &file : file_names.value()) {
-    GetDirectoryFilesView().AddFile(file.GetName());
+    GetDirectoryFilesView().AddFile(file);
   }
 
   GetDirectoryBar().SetDisplayedDirectory(new_directory);

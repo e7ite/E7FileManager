@@ -93,7 +93,7 @@ class DirectoryFilesView {
   // Adds a file to be displayed on the file view. This can be a file or a
   // directory (following Unix's everything is a file ideology). Will register
   // the callback specified in OnFileClick() to this file.
-  virtual void AddFile(const Glib::ustring &file_name) = 0;
+  virtual void AddFile(const File &file) = 0;
 
   // Removes all files that are currently displaying in the window view.
   virtual void RemoveAllFiles() = 0;

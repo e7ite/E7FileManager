@@ -251,7 +251,7 @@ class MockDirectoryFilesView : public DirectoryFilesView {
   MockDirectoryFilesView& operator=(const MockDirectoryFilesView&) = delete;
   MockDirectoryFilesView& operator=(MockDirectoryFilesView&&) = delete;
 
-  MOCK_METHOD(void, AddFile, (const Glib::ustring& directory_name), (override));
+  MOCK_METHOD(void, AddFile, (const File& file), (override));
   MOCK_METHOD(void, RemoveAllFiles, (), (override));
 
   void OnFileClick(
@@ -317,7 +317,9 @@ class MockWindow : public Window {
 
   void RefreshWindowComponents() override {
     GetDirectoryBar().SetDisplayedDirectory(GetCurrentDirectory());
-    GetDirectoryFilesView().AddFile("meow.txt");
+    absl::StatusOr<File> mock_file = File::Create(MockFile("meow.txt"));
+    mock_file.IgnoreError();
+    GetDirectoryFilesView().AddFile(mock_file.value());
   }
 };
 
