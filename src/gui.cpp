@@ -45,6 +45,19 @@ class UINavBar : public NavBar {
     border_.set_halign(Gtk::ALIGN_START);
     border_.set_valign(Gtk::ALIGN_START);
 
+    back_button_.set_image(
+        *CreateManagedImage("/project/icons/arrow.png", 16, 16,
+                            Gdk::PixbufRotation::PIXBUF_ROTATE_NONE));
+    back_button_.set_always_show_image(true);
+    forward_button_.set_image(
+        *CreateManagedImage("/project/icons/arrow.png", 16, 16,
+                            Gdk::PixbufRotation::PIXBUF_ROTATE_UPSIDEDOWN));
+    forward_button_.set_always_show_image(true);
+    up_button_.set_image(
+        *CreateManagedImage("/project/icons/arrow.png", 16, 16,
+                            Gdk::PixbufRotation::PIXBUF_ROTATE_CLOCKWISE));
+    up_button_.set_always_show_image(true);
+
     // Insert in this order so the up button is at the right, and the back
     // button is at the left.
     border_.pack_start(back_button_, Gtk::PackOptions::PACK_SHRINK);
