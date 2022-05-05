@@ -107,4 +107,8 @@ class NetworkConnection {
   short port_ = -1;
 };
 
+// Can be used to verify if the string passed in is a valid HTTP address.
+// Returns true if so, false otherwise.
+bool IsHTTPAddress(const Glib::ustring &address);
+
 #endif

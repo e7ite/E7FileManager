@@ -8,9 +8,23 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <regex>
 #include <string>
 #include <string_view>
 #include <vector>
+
+bool IsHTTPAddress(const Glib::ustring &address) {
+  static std::regex kHttpRegexMatcher(
+      R"(http:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*))");
+
+  bool was_match;
+  try {
+    was_match = std::regex_match(std::string(address), kHttpRegexMatcher);
+  } catch (const std::regex_error &error) {
+    return false;
+  }
+  return was_match;
+}
 
 NetworkAddressInfo::NetworkAddressInfo(NetworkAddressInfo &&address_info) {
   this->info_node = address_info.info_node;

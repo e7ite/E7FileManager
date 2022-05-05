@@ -322,4 +322,92 @@ TEST(NetworkConnectionTest, DontFailWhenServerHasNoBytesToSend) {
   EXPECT_THAT(connection->Recv(), IsOkAndHolds(IsEmpty()));
 }
 
+TEST(IsHttpAddressTest, SucceedOnRegularHTTPAddress) {
+  ASSERT_TRUE(IsHTTPAddress("http://google.com"));
+  ASSERT_TRUE(IsHTTPAddress("http://google.com/"));
+}
+
+TEST(IsHttpAddressTest, FailOnRootDirectory) {
+  ASSERT_FALSE(IsHTTPAddress("/"));
+}
+
+TEST(IsHttpAddressTest, FailOnMalformedURL) {
+  ASSERT_FALSE(IsHTTPAddress("//"));
+}
+
+TEST(IsHttpAddressTest, FailOnEmptyDirectory) {
+  ASSERT_FALSE(IsHTTPAddress(""));
+}
+
+TEST(IsHttpAddressTest, FailOnNestedDirectory) {
+  ASSERT_FALSE(IsHTTPAddress("/dir"));
+  ASSERT_FALSE(IsHTTPAddress("/dir/"));
+}
+
+TEST(IsHttpAddressTest, FailOnDoubleNestedDirectory) {
+  ASSERT_FALSE(IsHTTPAddress("/dir/nesteddir"));
+  ASSERT_FALSE(IsHTTPAddress("/dir/nesteddir/"));
+}
+
+TEST(IsHttpAddressTest, FailBecauseMissingHTTP) {
+  ASSERT_FALSE(IsHTTPAddress("google.com"));
+  ASSERT_FALSE(IsHTTPAddress("ecst.csuchico.edu"));
+}
+
+TEST(IsHttpAddressTest, FailOnHTTPS) {
+  ASSERT_FALSE(IsHTTPAddress("https://google.com"));
+  ASSERT_FALSE(IsHTTPAddress("https://ecst.csuchico.edu"));
+}
+
+TEST(IsHttpAddressTest, SucceedOnSchoolAddress) {
+  ASSERT_TRUE(IsHTTPAddress("http://ecst.csuchico.edu"));
+}
+
+TEST(IsHttpAddressTest, SucceedOnIPAddress) {
+  ASSERT_TRUE(IsHTTPAddress("http://10.0.0.12/"));
+  ASSERT_TRUE(IsHTTPAddress("http://10.0.0.12"));
+  ASSERT_TRUE(IsHTTPAddress("http://192.168.0.1/"));
+  ASSERT_TRUE(IsHTTPAddress("http://192.168.0.1"));
+}
+
+TEST(IsHttpAddressTest, FailOnMissingLocation) {
+  ASSERT_FALSE(IsHTTPAddress("http:"));
+}
+
+TEST(IsHttpAddressTest, FailOnMissingSecondForwardSlash) {
+  ASSERT_FALSE(IsHTTPAddress("http:/google.com"));
+  ASSERT_FALSE(IsHTTPAddress("http:/ecst.csuchico.edu"));
+}
+
+TEST(IsHttpAddressTest, FailOnMissingColon) {
+  ASSERT_FALSE(IsHTTPAddress("http//google.com"));
+  ASSERT_FALSE(IsHTTPAddress("http//ecst.csuchico.edu"));
+}
+
+TEST(IsHttpAddressTest, FailOnSlashesColon) {
+  ASSERT_FALSE(IsHTTPAddress("http:google.com"));
+  ASSERT_FALSE(IsHTTPAddress("http:ecst.csuchico.edu"));
+}
+
+TEST(IsHttpAddressTest, FailOnIncorrectProtocl) {
+  ASSERT_FALSE(IsHTTPAddress("ssh://google.com"));
+  ASSERT_FALSE(IsHTTPAddress("sftp://ecst.csuchico.edu"));
+}
+
+TEST(IsHttpAddressTest, SucceedOnHTTPAddressNestedDirectory) {
+  ASSERT_TRUE(IsHTTPAddress("http://google.com/directory"));
+  ASSERT_TRUE(IsHTTPAddress("http://ecst.csuchico.edu/directory"));
+}
+
+TEST(IsHttpAddressTest, SucceedOnHTTPAddressIndexFile) {
+  ASSERT_TRUE(IsHTTPAddress("http://google.com/index.html"));
+  ASSERT_TRUE(IsHTTPAddress("http://ecst.csuchico.edu/index.html"));
+}
+
+TEST(IsHttpAddressTest, SucceedOnHTTPSchoolInstructorDirectory) {
+  ASSERT_TRUE(
+      IsHTTPAddress("http://www.ecst.csuchico.edu/~sbsiewert/csci551/"));
+  ASSERT_TRUE(IsHTTPAddress("http://www.ecst.csuchico.edu/~trhenry/"));
+}
+
 }  // namespace
