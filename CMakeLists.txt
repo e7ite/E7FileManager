@@ -70,9 +70,17 @@ add_executable(filesystem_test
 )
 target_link_libraries(filesystem_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status absl::statusor absl::strings)
 
+add_executable(network_test 
+  ${PROJECT_SOURCE_DIR}/src/network.hpp
+  ${PROJECT_SOURCE_DIR}/src/network.cpp
+  ${PROJECT_SOURCE_DIR}/src/network_test.cpp
+)
+target_link_libraries(network_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status absl::statusor absl::strings)
+
 include(GoogleTest)
 gtest_discover_tests(gui_test)
 gtest_discover_tests(filesystem_test)
+gtest_discover_tests(network_test)
 
 set(ABSL_PROPAGATE_CXX_STD ON)
 add_subdirectory(abseil-cpp)
