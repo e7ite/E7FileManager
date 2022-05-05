@@ -28,6 +28,60 @@ NetworkAddressInfo::~NetworkAddressInfo() {
   if (this->info_node != nullptr) freeaddrinfo(this->info_node);
 }
 
+absl::StatusOr<std::vector<NetworkAddressInfo>>
+POSIXNetworkInterface::GetAvailableAddressesForEndpoint(
+    std::string_view node, std::string_view service) {
+  addrinfo hints;
+  hints.ai_family = AF_UNSPEC;      // Use IPv4 or IPv6 protocol family/domain
+  hints.ai_flags = 0;               // Do not narrow down any further with flags
+  hints.ai_protocol = 0;            // Use any protocol for the socket
+  hints.ai_socktype = SOCK_STREAM;  // Use TCP (connection-oriented) sockets
+
+  addrinfo *matching_addresses;
+  int status =
+      ::getaddrinfo(node.data(), service.data(), &hints, &matching_addresses);
+  if (status != 0) return absl::UnavailableError(gai_strerror(status));
+
+  std::vector<NetworkAddressInfo> result;
+  for (addrinfo *matching_address = matching_addresses;
+       matching_address != nullptr;
+       matching_address = matching_address->ai_next)
+    result.push_back(NetworkAddressInfo(matching_address));
+  return result;
+}
+
+int POSIXNetworkInterface::CreateSocket(
+    const NetworkAddressInfo &endpoint_info) {
+  addrinfo *endpoint_node = endpoint_info.info_node;
+  return ::socket(endpoint_node->ai_family, endpoint_node->ai_socktype,
+                  endpoint_node->ai_protocol);
+}
+
+int POSIXNetworkInterface::ConnectSocketToEndpoint(
+    int sockfd, const NetworkAddressInfo &endpoint_info) {
+  addrinfo *endpoint_node = endpoint_info.info_node;
+  return ::connect(sockfd, endpoint_node->ai_addr, endpoint_node->ai_addrlen);
+}
+
+int POSIXNetworkInterface::CloseSocket(int fd) { return ::close(fd); }
+
+absl::StatusOr<size_t> POSIXNetworkInterface::SendData(int sockfd,
+                                                       const void *buf,
+                                                       size_t size) {
+  size_t bytes_sent = ::send(sockfd, buf, size, 0);
+  if (bytes_sent == -1)
+    return absl::DataLossError(absl::StrCat(strerror(errno)));
+  return bytes_sent;
+}
+
+absl::StatusOr<size_t> POSIXNetworkInterface::RecvData(int sockfd, void *buf,
+                                                       size_t size) {
+  ssize_t bytes_received = ::recv(sockfd, buf, size, 0);
+  if (bytes_received == -1)
+    return absl::DataLossError(absl::StrCat(strerror(errno)));
+  return bytes_received;
+}
+
 NetworkConnection::NetworkConnection(NetworkInterface &network_interface,
                                      int socket_fd, std::string host_name,
                                      short port)

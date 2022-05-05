@@ -169,7 +169,6 @@ class MockNetworkInterface : public NetworkInterface {
     return mock_address_information;
   }
 
-  // Successfully create a socket when the network is
   int CreateSocket(const NetworkAddressInfo& endpoint_info) override {
     switch (endpoint_info.test_data) {
       case 2:

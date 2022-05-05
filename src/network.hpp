@@ -52,6 +52,20 @@ class NetworkInterface {
                                           size_t size) = 0;
 };
 
+class POSIXNetworkInterface : public NetworkInterface {
+ public:
+  absl::StatusOr<std::vector<NetworkAddressInfo>>
+  GetAvailableAddressesForEndpoint(std::string_view endpoint_name,
+                                   std::string_view service) override;
+  int CreateSocket(const NetworkAddressInfo &endpoint_info) override;
+  int ConnectSocketToEndpoint(int sockfd,
+                              const NetworkAddressInfo &endpoint_info) override;
+  int CloseSocket(int fd) override;
+  absl::StatusOr<size_t> SendData(int sockfd, const void *buf,
+                                  size_t size) override;
+  absl::StatusOr<size_t> RecvData(int sockfd, void *buf, size_t size) override;
+};
+
 // Represents am established network connection to a network endpoint and to
 // have two-way communcation with it. Does not handle any protocol-specific
 // communication, just handles sending and receiving data from it. These can be
