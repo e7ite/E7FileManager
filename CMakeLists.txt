@@ -57,6 +57,8 @@ add_compile_options(-g)
 add_executable(gui_test 
   ${PROJECT_SOURCE_DIR}/src/filesystem.hpp
   ${PROJECT_SOURCE_DIR}/src/filesystem.cpp
+  ${PROJECT_SOURCE_DIR}/src/network.hpp
+  ${PROJECT_SOURCE_DIR}/src/network.cpp
   ${PROJECT_SOURCE_DIR}/src/gui.hpp
   ${PROJECT_SOURCE_DIR}/src/gui.cpp
   ${PROJECT_SOURCE_DIR}/src/gui_test.cpp
@@ -66,6 +68,8 @@ target_link_libraries(gui_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main ab
 add_executable(filesystem_test 
   ${PROJECT_SOURCE_DIR}/src/filesystem.hpp
   ${PROJECT_SOURCE_DIR}/src/filesystem.cpp
+  ${PROJECT_SOURCE_DIR}/src/network.hpp
+  ${PROJECT_SOURCE_DIR}/src/network.cpp
   ${PROJECT_SOURCE_DIR}/src/filesystem_test.cpp
 )
 target_link_libraries(filesystem_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status absl::statusor absl::strings)
