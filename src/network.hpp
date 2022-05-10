@@ -54,6 +54,8 @@ class NetworkInterface {
 
 class POSIXNetworkInterface : public NetworkInterface {
  public:
+  virtual ~POSIXNetworkInterface() = default;
+
   absl::StatusOr<std::vector<NetworkAddressInfo>>
   GetAvailableAddressesForEndpoint(std::string_view endpoint_name,
                                    std::string_view service) override;

@@ -144,6 +144,7 @@ absl::StatusOr<NetworkConnection> NetworkConnection::Create(
     net_interface.CloseSocket(socket_fd);
   }
 
+  delete &net_interface;
   return absl::InternalError("Failed to create an endpoint for communication!");
 }
 

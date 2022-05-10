@@ -104,7 +104,9 @@ std::string MockFile::GetName() const { return name_; }
 MockDirectory::MockDirectory(const Glib::ustring &name,
                              std::initializer_list<MockFile *> files)
     : MockFile(name), files_(files) {}
-MockDirectory::~MockDirectory() {}
+MockDirectory::~MockDirectory() {
+  for (MockFile *file : files_) delete file;
+}
 
 absl::Span<const MockFile *const> MockDirectory::GetFiles() const {
   return files_;
