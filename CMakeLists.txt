@@ -17,6 +17,9 @@ file(GLOB_RECURSE ALL_CXX_TEST_FILES(${PROJECT_SOURCE_DIR}/src/*_test.[ch]pp))
 list(APPEND ALL_CXX_SOURCE_FILES ${ALL_CXX_FILES})
 list(REMOVE_ITEM ALL_CXX_SOURCE_FILES ${ALL_CXX_TEST_FILES})
 
+add_compile_options(-g)
+add_compile_options(-fsanitize=address,undefined)
+add_link_options(-fsanitize=address,undefined)
 add_executable(e7fmgr ${ALL_CXX_SOURCE_FILES})
 target_link_libraries(e7fmgr PUBLIC PkgConfig::GTKMM3 absl::status absl::statusor absl::strings)
 
@@ -54,6 +57,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 enable_testing()
 add_compile_options(-g)
+add_compile_options(-fsanitize=address,undefined)
+add_link_options(-fsanitize=address,undefined)
 add_executable(gui_test 
   ${PROJECT_SOURCE_DIR}/src/filesystem.hpp
   ${PROJECT_SOURCE_DIR}/src/filesystem.cpp
@@ -65,6 +70,9 @@ add_executable(gui_test
 )
 target_link_libraries(gui_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status absl::statusor absl::strings)
 
+add_compile_options(-g)
+add_compile_options(-fsanitize=address,undefined)
+add_link_options(-fsanitize=address,undefined)
 add_executable(filesystem_test 
   ${PROJECT_SOURCE_DIR}/src/filesystem.hpp
   ${PROJECT_SOURCE_DIR}/src/filesystem.cpp
@@ -74,6 +82,9 @@ add_executable(filesystem_test
 )
 target_link_libraries(filesystem_test PUBLIC gtest_main PkgConfig::GTKMM3 gmock_main absl::status absl::statusor absl::strings)
 
+add_compile_options(-g)
+add_compile_options(-fsanitize=address,undefined)
+add_link_options(-fsanitize=address,undefined)
 add_executable(network_test 
   ${PROJECT_SOURCE_DIR}/src/network.hpp
   ${PROJECT_SOURCE_DIR}/src/network.cpp
