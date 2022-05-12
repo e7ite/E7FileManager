@@ -162,5 +162,6 @@ absl::StatusOr<std::vector<File>> POSIXFileSystem::GetDirectoryFiles(
     file_names.push_back(new_file.value());
   }
 
+  closedir(dir);
   return file_names;
 }
