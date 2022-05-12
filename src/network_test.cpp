@@ -148,29 +148,27 @@ inline IsOkMatcher IsOk() { return IsOkMatcher(); }
 // Accepts any number of bytes from the client and responds with the
 // designated number of bytes specified when creating instance of class. Always
 // accepts and receives bytes in random intervals.
+//
+// Test data is just random integers. Each mocked API call will perform
+// specific actions based on certain integer values including succeeding and
+// returning errors.
 class MockNetworkInterface : public NetworkInterface {
  public:
   MockNetworkInterface(size_t bytes_to_send_to_client)
       : bytes_remaining_to_send_(bytes_to_send_to_client) {}
 
-  absl::StatusOr<std::vector<NetworkAddressInfo>>
-  GetAvailableAddressesForEndpoint(std::string_view endpoint_name,
-                                   std::string_view service) override {
-    std::vector<NetworkAddressInfo> mock_address_information;
+  absl::StatusOr<NetworkAddressInfo> GetAvailableAddressesForEndpoint(
+      std::string_view endpoint_name, std::string_view service) override {
     if (endpoint_name == "meow.net") {
-      mock_address_information.emplace_back(1);
-      mock_address_information.emplace_back(2);
-      mock_address_information.emplace_back(3);
-      mock_address_information.emplace_back(4);
+      return NetworkAddressInfo({1, 2, 3, 4});
     } else if (endpoint_name == "poop.com") {
-      mock_address_information.emplace_back(0);
-      mock_address_information.emplace_back(5);
+      return NetworkAddressInfo({0, 5});
     }
-    return mock_address_information;
+    return NetworkAddressInfo({1, 2, 3, 4, 5, 6});
   }
 
-  int CreateSocket(const NetworkAddressInfo& endpoint_info) override {
-    switch (endpoint_info.test_data) {
+  int CreateSocket(const NetworkAddressInfoNode& endpoint_info) override {
+    switch (endpoint_info.test_info_node_) {
       case 2:
       case 3:
         return 25;
@@ -181,8 +179,8 @@ class MockNetworkInterface : public NetworkInterface {
   }
 
   int ConnectSocketToEndpoint(
-      int sockfd, const NetworkAddressInfo& endpoint_info) override {
-    switch (endpoint_info.test_data) {
+      int sockfd, const NetworkAddressInfoNode& endpoint_info) override {
+    switch (endpoint_info.test_info_node_) {
       case 2:
       case 3:
         return 0;
