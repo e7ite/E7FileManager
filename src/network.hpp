@@ -13,15 +13,21 @@
 #include <string_view>
 #include <vector>
 
-// Contains information about a network endpoint. Can be extended to hold
-// data from different systems.
-struct NetworkAddressInfo {
-  addrinfo *info_node = nullptr;
-  int test_data = 0;  // Should not be used other than for testing.
+// Contains information about a network endpoint. Can be extended to hold data
+// from different systems.
+struct NetworkAddressInfoNode {
+  explicit NetworkAddressInfoNode(addrinfo *posix_info_node);
+  explicit NetworkAddressInfoNode(int test_data);
 
-  explicit NetworkAddressInfo(addrinfo *posix_info_node)
-      : info_node(posix_info_node) {}
-  explicit NetworkAddressInfo(int test_data) : test_data(test_data) {}
+  addrinfo *posix_info_node_ = nullptr;
+  int test_info_node_ = 0;
+};
+
+// Holds a list of the all the information available for a network endpoint.
+class NetworkAddressInfo {
+ public:
+  explicit NetworkAddressInfo(addrinfo *posix_linked_list);
+  explicit NetworkAddressInfo(std::initializer_list<int> test_data);
 
   NetworkAddressInfo(const NetworkAddressInfo &) = delete;
   NetworkAddressInfo &operator=(const NetworkAddressInfo &) = delete;
@@ -30,6 +36,15 @@ struct NetworkAddressInfo {
   NetworkAddressInfo &operator=(NetworkAddressInfo &&);
 
   ~NetworkAddressInfo();
+
+  auto begin() { return info_nodes_.begin(); }
+  auto end() { return info_nodes_.end(); }
+
+ private:
+  std::vector<NetworkAddressInfoNode> info_nodes_;
+
+  // Used to free the POSIX linked list iff initialized with one.
+  void (*deleter_)(addrinfo *posix_linked_list) = nullptr;
 };
 
 // Interface that can be used to query the system's networking API.
@@ -39,12 +54,11 @@ class NetworkInterface {
  public:
   virtual ~NetworkInterface() = default;
 
-  virtual absl::StatusOr<std::vector<NetworkAddressInfo>>
-  GetAvailableAddressesForEndpoint(std::string_view endpoint_name,
-                                   std::string_view service) = 0;
-  virtual int CreateSocket(const NetworkAddressInfo &endpoint_info) = 0;
+  virtual absl::StatusOr<NetworkAddressInfo> GetAvailableAddressesForEndpoint(
+      std::string_view endpoint_name, std::string_view service) = 0;
+  virtual int CreateSocket(const NetworkAddressInfoNode &endpoint_info) = 0;
   virtual int ConnectSocketToEndpoint(
-      int sockfd, const NetworkAddressInfo &endpoint_info) = 0;
+      int sockfd, const NetworkAddressInfoNode &endpoint_info) = 0;
   virtual int CloseSocket(int fd) = 0;
   virtual absl::StatusOr<size_t> SendData(int sockfd, const void *buf,
                                           size_t size) = 0;
@@ -56,12 +70,11 @@ class POSIXNetworkInterface : public NetworkInterface {
  public:
   virtual ~POSIXNetworkInterface() = default;
 
-  absl::StatusOr<std::vector<NetworkAddressInfo>>
-  GetAvailableAddressesForEndpoint(std::string_view endpoint_name,
-                                   std::string_view service) override;
-  int CreateSocket(const NetworkAddressInfo &endpoint_info) override;
-  int ConnectSocketToEndpoint(int sockfd,
-                              const NetworkAddressInfo &endpoint_info) override;
+  absl::StatusOr<NetworkAddressInfo> GetAvailableAddressesForEndpoint(
+      std::string_view endpoint_name, std::string_view service) override;
+  int CreateSocket(const NetworkAddressInfoNode &endpoint_info) override;
+  int ConnectSocketToEndpoint(
+      int sockfd, const NetworkAddressInfoNode &endpoint_info) override;
   int CloseSocket(int fd) override;
   absl::StatusOr<size_t> SendData(int sockfd, const void *buf,
                                   size_t size) override;

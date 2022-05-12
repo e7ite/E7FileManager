@@ -26,23 +26,43 @@ bool IsHTTPAddress(const Glib::ustring &address) {
   return was_match;
 }
 
+NetworkAddressInfo::NetworkAddressInfo(addrinfo *posix_linked_list)
+    : deleter_(+[](addrinfo *posix_linked_list) {
+        if (posix_linked_list != nullptr) freeaddrinfo(posix_linked_list);
+      }) {
+  for (addrinfo *info_node = posix_linked_list; info_node != nullptr;
+       info_node = info_node->ai_next)
+    this->info_nodes_.push_back(NetworkAddressInfoNode(info_node));
+}
+
+NetworkAddressInfo::NetworkAddressInfo(std::initializer_list<int> test_data) {
+  for (int test_data_node : test_data)
+    this->info_nodes_.push_back(NetworkAddressInfoNode(test_data_node));
+}
+
+NetworkAddressInfoNode::NetworkAddressInfoNode(addrinfo *posix_info_node)
+    : posix_info_node_(posix_info_node) {}
+
+NetworkAddressInfoNode::NetworkAddressInfoNode(int test_data)
+    : test_info_node_(test_data) {}
+
 NetworkAddressInfo::NetworkAddressInfo(NetworkAddressInfo &&address_info) {
-  this->info_node = address_info.info_node;
-  address_info.info_node = nullptr;
+  this->info_nodes_ = std::move(address_info.info_nodes_);
 }
 
 NetworkAddressInfo &NetworkAddressInfo::operator=(
     NetworkAddressInfo &&address_info) {
-  this->info_node = address_info.info_node;
-  address_info.info_node = nullptr;
+  this->info_nodes_ = std::move(address_info.info_nodes_);
   return *this;
 }
 
 NetworkAddressInfo::~NetworkAddressInfo() {
-  if (this->info_node != nullptr) freeaddrinfo(this->info_node);
+  // Deleter will not be empty if initialized by a POSIX linked list node.
+  if (deleter_ != nullptr && !this->info_nodes_.empty())
+    deleter_(this->info_nodes_.begin()->posix_info_node_);
 }
 
-absl::StatusOr<std::vector<NetworkAddressInfo>>
+absl::StatusOr<NetworkAddressInfo>
 POSIXNetworkInterface::GetAvailableAddressesForEndpoint(
     std::string_view node, std::string_view service) {
   addrinfo hints;
@@ -54,26 +74,23 @@ POSIXNetworkInterface::GetAvailableAddressesForEndpoint(
   addrinfo *matching_addresses;
   int status =
       ::getaddrinfo(node.data(), service.data(), &hints, &matching_addresses);
-  if (status != 0) return absl::UnavailableError(gai_strerror(status));
+  if (status != 0)
+    return absl::UnavailableError(
+        absl::StrCat("::getaddrinfo(): ", gai_strerror(status)));
 
-  std::vector<NetworkAddressInfo> result;
-  for (addrinfo *matching_address = matching_addresses;
-       matching_address != nullptr;
-       matching_address = matching_address->ai_next)
-    result.push_back(NetworkAddressInfo(matching_address));
-  return result;
+  return NetworkAddressInfo(/*posix_info_node=*/matching_addresses);
 }
 
 int POSIXNetworkInterface::CreateSocket(
-    const NetworkAddressInfo &endpoint_info) {
-  addrinfo *endpoint_node = endpoint_info.info_node;
+    const NetworkAddressInfoNode &endpoint_info) {
+  addrinfo *endpoint_node = endpoint_info.posix_info_node_;
   return ::socket(endpoint_node->ai_family, endpoint_node->ai_socktype,
                   endpoint_node->ai_protocol);
 }
 
 int POSIXNetworkInterface::ConnectSocketToEndpoint(
-    int sockfd, const NetworkAddressInfo &endpoint_info) {
-  addrinfo *endpoint_node = endpoint_info.info_node;
+    int sockfd, const NetworkAddressInfoNode &endpoint_info) {
+  addrinfo *endpoint_node = endpoint_info.posix_info_node_;
   return ::connect(sockfd, endpoint_node->ai_addr, endpoint_node->ai_addrlen);
 }
 
@@ -84,7 +101,7 @@ absl::StatusOr<size_t> POSIXNetworkInterface::SendData(int sockfd,
                                                        size_t size) {
   size_t bytes_sent = ::send(sockfd, buf, size, 0);
   if (bytes_sent == -1)
-    return absl::DataLossError(absl::StrCat(strerror(errno)));
+    return absl::DataLossError(absl::StrCat("::send(): ", strerror(errno)));
   return bytes_sent;
 }
 
@@ -92,7 +109,7 @@ absl::StatusOr<size_t> POSIXNetworkInterface::RecvData(int sockfd, void *buf,
                                                        size_t size) {
   ssize_t bytes_received = ::recv(sockfd, buf, size, 0);
   if (bytes_received == -1)
-    return absl::DataLossError(absl::StrCat(strerror(errno)));
+    return absl::DataLossError(absl::StrCat("::recv(): ", strerror(errno)));
   return bytes_received;
 }
 
@@ -127,13 +144,13 @@ NetworkConnection &NetworkConnection::operator=(
 
 absl::StatusOr<NetworkConnection> NetworkConnection::Create(
     NetworkInterface &net_interface, std::string_view host_name, short port) {
-  absl::StatusOr<std::vector<NetworkAddressInfo>> available_addresses =
+  absl::StatusOr<NetworkAddressInfo> available_addresses =
       net_interface.GetAvailableAddressesForEndpoint(host_name,
                                                      std::to_string(port));
   if (!available_addresses.ok()) return available_addresses.status();
 
   int socket_fd;
-  for (const NetworkAddressInfo &address_info : *available_addresses) {
+  for (const NetworkAddressInfoNode &address_info : *available_addresses) {
     if ((socket_fd = net_interface.CreateSocket(address_info)) == -1) continue;
 
     if (!net_interface.ConnectSocketToEndpoint(socket_fd, address_info)) {
