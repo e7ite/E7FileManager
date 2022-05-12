@@ -48,11 +48,15 @@ NetworkAddressInfoNode::NetworkAddressInfoNode(int test_data)
 
 NetworkAddressInfo::NetworkAddressInfo(NetworkAddressInfo &&address_info) {
   this->info_nodes_ = std::move(address_info.info_nodes_);
+  this->deleter_ = address_info.deleter_;
+  address_info.deleter_ = nullptr;
 }
 
 NetworkAddressInfo &NetworkAddressInfo::operator=(
     NetworkAddressInfo &&address_info) {
   this->info_nodes_ = std::move(address_info.info_nodes_);
+  this->deleter_ = address_info.deleter_;
+  address_info.deleter_ = nullptr;
   return *this;
 }
 
