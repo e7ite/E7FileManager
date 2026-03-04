@@ -6,10 +6,6 @@ A GTKMM application for GNU/Linux that intends to dig in to how file managers
 work. It is solely a reinvent-the-wheel type of project, as that is the way I 
 learn best on how most projects work.
 
-Read [this](https://docs.google.com/document/d/1HemMB4NQQw3XpyLmlN2RkYXBpGGoL-UKzxsKtxnNEeE/edit?usp=sharing) 
-to obtain a high level overview of this project, the requirements, and how these
-will be created internally.
-
 ## Features
 - View all files on local file system
 - Differentiate between files and folders
